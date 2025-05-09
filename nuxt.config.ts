@@ -19,4 +19,8 @@ export default defineNuxtConfig({
     componentDir: "./components/ui",
     prefix: "",
   },
+  icon: {
+    mode: "css",
+    cssLayer: "base",
+  },
 });

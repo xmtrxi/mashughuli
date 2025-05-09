@@ -1,2 +1,9 @@
 <script setup lang="ts"></script>
-<template></template>
+<template>
+  <div>
+    <HomeHeroSection />
+    <HomeHowItWorks />
+    <ErrandsCategories />
+    <HomeWhyChooseUs />
+  </div>
+</template>
