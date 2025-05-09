@@ -1,7 +1,7 @@
 <!-- components/HeroSection.vue -->
 <template>
   <section
-    class="relative bg-gradient-to-br from-primary to-primary-dark text-white py-16 md:py-24"
+    class="relative z-10 bg-gradient-to-br from-primary to-primary-dark text-white py-16 md:py-24"
   >
     <!-- Background pattern -->
     <div class="absolute inset-0 opacity-10">
