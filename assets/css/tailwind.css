@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -28,10 +28,10 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -44,143 +44,202 @@
   --animate-accordion-up: accordion-up 0.2s ease-out;
 }
 
-:root {
-  --radius: 0rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.623 0.214 259.815); /* Purple - main brand color */
-  --primary-foreground: oklch(0.97 0.014 254.604);
-  --secondary: oklch(0.2 0.001 286.375); /* Near-black - secondary actions */
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.828 0.189 84.429); /* Yellow - attention/in-progress */
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325); /* Red - cancellations/alerts */
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
+@layer base {
+  :root {
+    --radius: 0.3rem;
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
 
-  /* Status colors for errand states */
-  --completed: oklch(0.398 0.07 227.392); /* Blue - completed tasks */
-  --in-progress: oklch(0.828 0.189 84.429); /* Yellow - in progress tasks */
-  --urgent: oklch(0.769 0.188 70.08); /* Orange-Red - urgent tasks */
+    /* Light theme colors */
+    --background: #ffffff;
+    --foreground: #23232b;
 
-  /* Chart colors */
-  --chart-1: oklch(0.623 0.214 259.815); /* Brand purple */
-  --chart-2: oklch(0.6 0.118 184.704); /* Teal */
-  --chart-3: oklch(0.398 0.07 227.392); /* Blue */
-  --chart-4: oklch(0.828 0.189 84.429); /* Yellow */
-  --chart-5: oklch(0.769 0.188 70.08); /* Orange-Red */
+    --card: #ffffff;
+    --card-foreground: #23232b;
 
-  /* Sidebar styling */
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.623 0.214 259.815);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
-}
+    --popover: #ffffff;
+    --popover-foreground: #23232b;
 
-.dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.546 0.245 262.881); /* Purple - adjusted for dark mode */
-  --primary-foreground: oklch(0.379 0.146 265.522);
-  --secondary: oklch(
-    0.1 0.001 286.375
-  ); /* Deep black - adjusted for dark mode */
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.828 0.189 84.429); /* Yellow - attention/in-progress */
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.704 0.191 22.216); /* Red - adjusted for dark mode */
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
+    --primary: #5639e5; /* Merged colors favoring the brand purple */
+    --primary-foreground: #f7f4fe;
 
-  /* Status colors for errand states - dark mode */
-  --completed: oklch(0.488 0.243 264.376); /* Blue - completed tasks */
-  --in-progress: oklch(0.828 0.189 84.429); /* Yellow - in progress tasks */
-  --urgent: oklch(0.645 0.246 16.439); /* Orange-Red - urgent tasks */
+    --secondary: #322d36; /* Secondary actions */
+    --secondary-foreground: #fbfbfb;
 
-  /* Chart colors */
-  --chart-1: oklch(0.488 0.243 264.376); /* Brand purple */
-  --chart-2: oklch(0.696 0.17 162.48); /* Teal */
-  --chart-3: oklch(0.627 0.265 303.9); /* Alternative blue-purple */
-  --chart-4: oklch(0.828 0.189 84.429); /* Yellow */
-  --chart-5: oklch(0.645 0.246 16.439); /* Orange-Red */
+    --muted: #f6f6f7;
+    --muted-foreground: #8c8991;
 
-  /* Sidebar styling */
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.546 0.245 262.881);
-  --sidebar-primary-foreground: oklch(0.379 0.146 265.522);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+    --accent: #d3be24; /* Yellow - attention/in-progress */
+    --accent-foreground: #35333f;
+
+    --destructive: #d62d12; /* Red - cancellations/alerts */
+    --destructive-foreground: #fbfbfb;
+
+    --border: #ebebec;
+    --input: #ebebec;
+    --ring: #5639e5;
+
+    /* Status colors for errand states */
+    --completed: #456fd5; /* Blue - completed tasks */
+    --in-progress: #d3be24; /* Yellow - in progress tasks */
+    --urgent: #e65212; /* Orange-Red - urgent tasks */
+
+    /* Chart colors */
+    --chart-1: #5639e5; /* Brand purple */
+    --chart-2: #399bb3; /* Teal */
+    --chart-3: #456fd5; /* Blue */
+    --chart-4: #d3be24; /* Yellow */
+    --chart-5: #e65212; /* Orange-Red */
+
+    /* Sidebar styling */
+    --sidebar: #fbfbfb;
+    --sidebar-foreground: #23232b;
+    --sidebar-primary: #5639e5;
+    --sidebar-primary-foreground: #f7f4fe;
+    --sidebar-accent: #f6f6f7;
+    --sidebar-accent-foreground: #35333f;
+    --sidebar-border: #ebebec;
+    --sidebar-ring: #5639e5;
+  }
+
+  .dark {
+    /* Dark theme colors */
+    --background: #23232b;
+    --foreground: #fbfbfb;
+
+    --card: #35333f;
+    --card-foreground: #fbfbfb;
+
+    --popover: #35333f;
+    --popover-foreground: #fbfbfb;
+
+    --primary: #734ff5; /* Purple - adjusted for dark mode */
+    --primary-foreground: #4a25aa;
+
+    --secondary: #1a1a1a; /* Deep black - adjusted for dark mode */
+    --secondary-foreground: #fbfbfb;
+
+    --muted: #46434d;
+    --muted-foreground: #b3b1b7;
+
+    --accent: #d3be24; /* Yellow - attention/in-progress */
+    --accent-foreground: #35333f;
+
+    --destructive: #e14f23; /* Red - adjusted for dark mode */
+    --destructive-foreground: #fbfbfb;
+
+    --border: rgba(255, 255, 255, 0.1);
+    --input: rgba(255, 255, 255, 0.15);
+    --ring: #6a4df9;
+
+    /* Status colors for errand states - dark mode */
+    --completed: #6a4df9; /* Blue - completed tasks */
+    --in-progress: #d3be24; /* Yellow - in progress tasks */
+    --urgent: #e33c11; /* Orange-Red - urgent tasks */
+
+    /* Chart colors */
+    --chart-1: #6a4df9; /* Brand purple */
+    --chart-2: #3ecaab; /* Teal */
+    --chart-3: #ae5eff; /* Alternative blue-purple */
+    --chart-4: #d3be24; /* Yellow */
+    --chart-5: #e33c11; /* Orange-Red */
+
+    /* Sidebar styling */
+    --sidebar: #35333f;
+    --sidebar-foreground: #fbfbfb;
+    --sidebar-primary: #734ff5;
+    --sidebar-primary-foreground: #4a25aa;
+    --sidebar-accent: #46434d;
+    --sidebar-accent-foreground: #fbfbfb;
+    --sidebar-border: rgba(255, 255, 255, 0.1);
+    --sidebar-ring: #6a4df9;
+  }
 }
 
 /* Utility classes for errand status indicators */
-.status-completed {
-  background-color: var(--completed);
-  color: white;
+@layer components {
+  .status-completed {
+    background-color: var(--completed);
+    color: white;
+  }
+
+  .status-in-progress {
+    background-color: var(--in-progress);
+    color: var(--foreground);
+  }
+
+  .status-urgent {
+    background-color: var(--urgent);
+    color: white;
+  }
+
+  /* Button styles */
+  .btn-primary {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border-radius: var(--radius);
+    padding: 0.5rem 1rem;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-secondary {
+    background-color: var(--secondary);
+    color: white;
+    border-radius: var(--radius);
+    padding: 0.5rem 1rem;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-urgent {
+    background-color: var(--urgent);
+    color: white;
+    border-radius: var(--radius);
+    padding: 0.5rem 1rem;
+    border: none;
+    cursor: pointer;
+  }
+
+  .hero-section {
+    @apply relative flex min-h-[70vh] flex-col items-center justify-center overflow-hidden py-20;
+  }
+
+  .container-section {
+    @apply container mx-auto px-4 py-12 md:px-6 md:py-16 lg:py-24;
+  }
+
+  .card-hover {
+    @apply transition duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .form-input {
+    @apply block w-full rounded-md border border-input px-4 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary;
+  }
 }
 
-.status-in-progress {
-  background-color: var(--in-progress);
-  color: var(--foreground);
-}
-
-.status-urgent {
-  background-color: var(--urgent);
-  color: white;
-}
-
-/* Button styles */
-.btn-primary {
-  background-color: var(--primary);
-  color: var(--primary-foreground);
-  border-radius: var(--radius);
-  padding: 0.5rem 1rem;
-  border: none;
-  cursor: pointer;
-}
-
-.btn-secondary {
-  background-color: var(--secondary);
-  color: white;
-  border-radius: var(--radius);
-  padding: 0.5rem 1rem;
-  border: none;
-  cursor: pointer;
-}
-
-.btn-urgent {
-  background-color: var(--urgent);
-  color: white;
-  border-radius: var(--radius);
-  padding: 0.5rem 1rem;
-  border: none;
-  cursor: pointer;
-}
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+  h1 {
+    @apply text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl;
+  }
+  h2 {
+    @apply text-3xl font-semibold tracking-tight md:text-4xl;
+  }
+  h3 {
+    @apply text-2xl font-semibold tracking-tight md:text-3xl;
+  }
+  h4 {
+    @apply text-xl font-semibold tracking-tight md:text-2xl;
   }
 }
