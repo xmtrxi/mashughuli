@@ -1,37 +1,38 @@
 <script lang="ts" setup>
 const categories = [
   {
-    name: "Shopping",
-    icon: "🛒",
-    description: "Grocery shopping, retail pickups and more",
+    name: 'Shopping',
+    icon: '🛒',
+    description: 'Grocery shopping, retail pickups and more',
   },
   {
-    name: "Delivery",
-    icon: "📦",
-    description: "Package pickup and delivery services",
+    name: 'Delivery',
+    icon: '📦',
+    description: 'Package pickup and delivery services',
   },
   {
-    name: "Home Services",
-    icon: "🏠",
-    description: "Home cleaning, maintenance and assistance",
+    name: 'Home Services',
+    icon: '🏠',
+    description: 'Home cleaning, maintenance and assistance',
   },
   {
-    name: "Administrative",
-    icon: "📝",
-    description: "Office errands, document services and more",
+    name: 'Administrative',
+    icon: '📝',
+    description: 'Office errands, document services and more',
   },
   {
-    name: "Pet Care",
-    icon: "🐶",
-    description: "Pet sitting, walking and related services",
+    name: 'Pet Care',
+    icon: '🐶',
+    description: 'Pet sitting, walking and related services',
   },
   {
-    name: "Other",
-    icon: "✨",
-    description: "Miscellaneous tasks and special requests",
+    name: 'Other',
+    icon: '✨',
+    description: 'Miscellaneous tasks and special requests',
   },
-];
+]
 </script>
+
 <template>
   <section class="py-16 md:py-24 bg-white">
     <div class="container mx-auto">
@@ -45,11 +46,21 @@ const categories = [
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <Card v-for="category in categories" :key="category.name" class="">
+        <Card
+          v-for="category in categories"
+          :key="category.name"
+          class=""
+        >
           <CardContent>
-            <div class="text-3xl mb-3">{{ category.icon }}</div>
-            <h3 class="text-xl font-semibold mb-2">{{ category.name }}</h3>
-            <p class="text-muted-foreground">{{ category.description }}</p>
+            <div class="text-3xl mb-3">
+              {{ category.icon }}
+            </div>
+            <h3 class="text-xl font-semibold mb-2">
+              {{ category.name }}
+            </h3>
+            <p class="text-muted-foreground">
+              {{ category.description }}
+            </p>
           </CardContent>
         </Card>
       </div>

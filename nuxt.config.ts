@@ -1,9 +1,6 @@
 import tailwindcss from "@tailwindcss/vite";
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: "2024-11-01",
-  devtools: { enabled: true },
-  css: ["~/assets/css/tailwind.css"],
   modules: [
     "@nuxt/eslint",
     "@nuxt/fonts",
@@ -12,15 +9,24 @@ export default defineNuxtConfig({
     "@nuxt/scripts",
     "shadcn-nuxt",
   ],
+  devtools: { enabled: true },
+  css: ["~/assets/css/tailwind.css"],
+  compatibilityDate: "2024-11-01",
   vite: {
     plugins: [tailwindcss()],
   },
-  shadcn: {
-    componentDir: "./components/ui",
-    prefix: "",
+  eslint: {
+    config: {
+      stylistic: true,
+      formatters: true,
+    },
   },
   icon: {
     mode: "css",
     cssLayer: "base",
+  },
+  shadcn: {
+    componentDir: "./components/ui",
+    prefix: "",
   },
 });

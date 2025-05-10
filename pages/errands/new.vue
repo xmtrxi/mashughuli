@@ -11,7 +11,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { formatDate } from "@vueuse/core";
+
 const formSchema = toTypedSchema(
   z.object({
     title: z.string().min(5).max(100),
@@ -47,6 +47,7 @@ const onSubmit = handleSubmit((values) => {
   });
 });
 </script>
+
 <template>
   <div class="container mx-auto px-4 py-12">
     <div class="mb-8 text-center">
@@ -61,12 +62,12 @@ const onSubmit = handleSubmit((values) => {
 
       <form class="grid grid-cols-1 gap-3" @submit.prevent="onSubmit">
         <FormField
-          name="title"
           v-slot="{ componentField }"
+          name="title"
           :validate-on-blur="!isFieldDirty"
         >
           <FormItem>
-            <FormLabel class="block">Title</FormLabel>
+            <FormLabel class="block"> Title </FormLabel>
             <FormControl>
               <Input
                 type="text"
@@ -74,9 +75,9 @@ const onSubmit = handleSubmit((values) => {
                 placeholder="Errand title"
               />
             </FormControl>
-            <FormDescription
-              >A clear, concise title for your errand.</FormDescription
-            >
+            <FormDescription>
+              A clear, concise title for your errand.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         </FormField>
@@ -95,9 +96,9 @@ const onSubmit = handleSubmit((values) => {
                 rows="5"
               />
             </FormControl>
-            <FormDescription
-              >Be specific about what the task involves.</FormDescription
-            >
+            <FormDescription>
+              Be specific about what the task involves.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         </FormField>
@@ -115,9 +116,9 @@ const onSubmit = handleSubmit((values) => {
                 placeholder="Where is this errand located?"
               />
             </FormControl>
-            <FormDescription
-              >Enter a specific address or general area.</FormDescription
-            >
+            <FormDescription>
+              Enter a specific address or general area.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         </FormField>
@@ -135,15 +136,17 @@ const onSubmit = handleSubmit((values) => {
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="general">General</SelectItem>
-                    <SelectItem value="shopping">Shopping</SelectItem>
-                    <SelectItem value="delivery">Delivery</SelectItem>
-                    <SelectItem value="home-services">Home Services</SelectItem>
-                    <SelectItem value="administrative"
-                      >Administrative</SelectItem
-                    >
-                    <SelectItem value="pet-care">Pet Care</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="general"> General </SelectItem>
+                    <SelectItem value="shopping"> Shopping </SelectItem>
+                    <SelectItem value="delivery"> Delivery </SelectItem>
+                    <SelectItem value="home-services">
+                      Home Services
+                    </SelectItem>
+                    <SelectItem value="administrative">
+                      Administrative
+                    </SelectItem>
+                    <SelectItem value="pet-care"> Pet Care </SelectItem>
+                    <SelectItem value="other"> Other </SelectItem>
                   </SelectContent>
                 </Select>
               </FormControl>
@@ -164,9 +167,9 @@ const onSubmit = handleSubmit((values) => {
                     <SelectValue placeholder="Priority" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Low Priority</SelectItem>
-                    <SelectItem value="medium">Medium Priority</SelectItem>
-                    <SelectItem value="high">High Priority</SelectItem>
+                    <SelectItem value="low"> Low Priority </SelectItem>
+                    <SelectItem value="medium"> Medium Priority </SelectItem>
+                    <SelectItem value="high"> High Priority </SelectItem>
                   </SelectContent>
                 </Select>
               </FormControl>

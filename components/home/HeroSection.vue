@@ -5,7 +5,11 @@
   >
     <!-- Background pattern -->
     <div class="absolute inset-0 opacity-10">
-      <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="100%"
+        height="100%"
+      >
         <defs>
           <pattern
             id="dotPattern"
@@ -13,10 +17,19 @@
             height="20"
             patternUnits="userSpaceOnUse"
           >
-            <circle cx="3" cy="3" r="1.5" fill="white" />
+            <circle
+              cx="3"
+              cy="3"
+              r="1.5"
+              fill="white"
+            />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#dotPattern)" />
+        <rect
+          width="100%"
+          height="100%"
+          fill="url(#dotPattern)"
+        />
       </svg>
     </div>
 
@@ -108,9 +121,7 @@
                 >
                   50k+
                 </div>
-                <span class="text-black font-medium text-sm"
-                  >Active Members</span
-                >
+                <span class="text-black font-medium text-sm">Active Members</span>
               </div>
             </div>
           </div>

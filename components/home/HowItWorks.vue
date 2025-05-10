@@ -1,19 +1,20 @@
 <script lang="ts" setup>
 const works = [
   {
-    title: "Post Your Errand",
-    decription: "Describe your task, set a budget and choose a deadline.",
+    title: 'Post Your Errand',
+    decription: 'Describe your task, set a budget and choose a deadline.',
   },
   {
-    title: "Receive Bids",
-    decription: "Review offers from qualified runners in your area.",
+    title: 'Receive Bids',
+    decription: 'Review offers from qualified runners in your area.',
   },
   {
-    title: "Get It Done",
-    decription: "Choose a runner and get your errand completed efficiently.",
+    title: 'Get It Done',
+    decription: 'Choose a runner and get your errand completed efficiently.',
   },
-];
+]
 </script>
+
 <template>
   <section class="py-16 md:py-24 bg-white">
     <div class="container mx-auto">
@@ -39,7 +40,9 @@ const works = [
               >
                 <span class="text-2xl">{{ index + 1 }}</span>
               </div>
-              <h3 class="text-xl font-semibold">{{ work.title }}</h3>
+              <h3 class="text-xl font-semibold">
+                {{ work.title }}
+              </h3>
               <p class="text-muted-foreground mt-2">
                 {{ work.decription }}
               </p>

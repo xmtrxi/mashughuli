@@ -40,8 +40,8 @@
           class="absolute top-1/2 -translate-y-1/2 -right-4 md:-right-8 z-10"
         >
           <button
-            @click="nextSlide"
             class="bg-white rounded-full p-2 shadow-md hover:bg-gray-100 transition"
+            @click="nextSlide"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -76,8 +76,12 @@
                     <span class="text-primary font-semibold">JS</span>
                   </div>
                   <div>
-                    <h4 class="font-semibold text-dark">Jessica Smith</h4>
-                    <p class="text-gray-medium text-sm">Product Designer</p>
+                    <h4 class="font-semibold text-dark">
+                      Jessica Smith
+                    </h4>
+                    <p class="text-gray-medium text-sm">
+                      Product Designer
+                    </p>
                   </div>
                 </div>
                 <div class="mb-4">
@@ -153,8 +157,12 @@
                     <span class="text-secondary font-semibold">RM</span>
                   </div>
                   <div>
-                    <h4 class="font-semibold text-dark">Robert Martinez</h4>
-                    <p class="text-gray-medium text-sm">Startup Founder</p>
+                    <h4 class="font-semibold text-dark">
+                      Robert Martinez
+                    </h4>
+                    <p class="text-gray-medium text-sm">
+                      Startup Founder
+                    </p>
                   </div>
                 </div>
                 <div class="mb-4">

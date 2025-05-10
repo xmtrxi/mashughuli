@@ -153,6 +153,7 @@ function resetFilters() {
   sortBy.value = "newest";
 }
 </script>
+
 <template>
   <div class="container mx-auto px-4 py-12">
     <div class="flex justify-between items-center mb-8">
@@ -180,10 +181,10 @@ function resetFilters() {
             class="absolute left-3 top-3 h-4 w-4 text-muted-foreground"
           />
           <Input
+            v-model="searchQuery"
             type="text"
             placeholder="Search errands..."
             class="pl-10 input"
-            v-model="searchQuery"
           />
         </div>
 
@@ -193,7 +194,7 @@ function resetFilters() {
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all"> All Categories </SelectItem>
               <SelectItem
                 v-for="cat in categoryOptions"
                 :key="cat.value"
@@ -209,7 +210,7 @@ function resetFilters() {
               <SelectValue placeholder="All Priorities" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
+              <SelectItem value="all"> All Priorities </SelectItem>
               <SelectItem
                 v-for="prio in priorityOptions"
                 :key="prio.value"

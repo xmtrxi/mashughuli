@@ -17,81 +17,130 @@
             Connecting people and building communities for a better future.
           </p>
           <div class="flex space-x-4">
-            <a href="#" class="text-gray-medium hover:text-white">
-              <Icon name="mdi:twitter" class="h-5 w-5" />
+            <a
+              href="#"
+              class="text-gray-medium hover:text-white"
+            >
+              <Icon
+                name="mdi:twitter"
+                class="h-5 w-5"
+              />
             </a>
-            <a href="#" class="text-gray-medium hover:text-white">
-              <Icon name="mdi:linkedin" class="h-5 w-5" />
+            <a
+              href="#"
+              class="text-gray-medium hover:text-white"
+            >
+              <Icon
+                name="mdi:linkedin"
+                class="h-5 w-5"
+              />
             </a>
-            <a href="#" class="text-gray-medium hover:text-white">
-              <Icon name="mdi:github" class="h-5 w-5" />
+            <a
+              href="#"
+              class="text-gray-medium hover:text-white"
+            >
+              <Icon
+                name="mdi:github"
+                class="h-5 w-5"
+              />
             </a>
           </div>
         </div>
 
         <!-- Quick Links -->
         <div>
-          <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+          <h3 class="text-lg font-semibold mb-4">
+            Quick Links
+          </h3>
           <ul class="space-y-2">
             <li>
-              <a href="#" class="text-gray-medium hover:text-white">Home</a>
+              <a
+                href="#"
+                class="text-gray-medium hover:text-white"
+              >Home</a>
             </li>
             <li>
-              <a href="#" class="text-gray-medium hover:text-white">About Us</a>
+              <a
+                href="#"
+                class="text-gray-medium hover:text-white"
+              >About Us</a>
             </li>
             <li>
-              <a href="#" class="text-gray-medium hover:text-white">Services</a>
+              <a
+                href="#"
+                class="text-gray-medium hover:text-white"
+              >Services</a>
             </li>
             <li>
-              <a href="#" class="text-gray-medium hover:text-white">Events</a>
+              <a
+                href="#"
+                class="text-gray-medium hover:text-white"
+              >Events</a>
             </li>
             <li>
-              <a href="#" class="text-gray-medium hover:text-white">Blog</a>
+              <a
+                href="#"
+                class="text-gray-medium hover:text-white"
+              >Blog</a>
             </li>
           </ul>
         </div>
 
         <!-- Resources -->
         <div>
-          <h3 class="text-lg font-semibold mb-4">Resources</h3>
+          <h3 class="text-lg font-semibold mb-4">
+            Resources
+          </h3>
           <ul class="space-y-2">
             <li>
-              <a href="#" class="text-gray-medium hover:text-white"
-                >Help Center</a
-              >
+              <a
+                href="#"
+                class="text-gray-medium hover:text-white"
+              >Help Center</a>
             </li>
             <li>
-              <a href="#" class="text-gray-medium hover:text-white"
-                >Community Guidelines</a
-              >
+              <a
+                href="#"
+                class="text-gray-medium hover:text-white"
+              >Community Guidelines</a>
             </li>
             <li>
-              <a href="#" class="text-gray-medium hover:text-white"
-                >Privacy Policy</a
-              >
+              <a
+                href="#"
+                class="text-gray-medium hover:text-white"
+              >Privacy Policy</a>
             </li>
             <li>
-              <a href="#" class="text-gray-medium hover:text-white"
-                >Terms of Service</a
-              >
+              <a
+                href="#"
+                class="text-gray-medium hover:text-white"
+              >Terms of Service</a>
             </li>
             <li>
-              <a href="#" class="text-gray-medium hover:text-white">FAQs</a>
+              <a
+                href="#"
+                class="text-gray-medium hover:text-white"
+              >FAQs</a>
             </li>
           </ul>
         </div>
 
         <!-- Newsletter -->
         <div>
-          <h3 class="text-lg font-semibold mb-4">Subscribe</h3>
+          <h3 class="text-lg font-semibold mb-4">
+            Subscribe
+          </h3>
           <p class="text-gray-medium text-sm mb-4">
             Join our newsletter to stay up to date on features and releases.
           </p>
-          <form @submit.prevent="subscribeToNewsletter" class="space-y-2">
+          <form
+            class="space-y-2"
+            @submit.prevent="subscribeToNewsletter"
+          >
             <Input
+              v-model="email"
               class="bg-secondary"
               type="email"
-              v-model="email"
               placeholder="Enter your email"
               required
             />
@@ -117,13 +166,13 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref } from 'vue'
 
-const email = ref("");
+const email = ref('')
 
 const subscribeToNewsletter = () => {
   // Here you would implement the newsletter subscription logic
-  alert(`Thank you for subscribing with: ${email.value}`);
-  email.value = "";
-};
+  alert(`Thank you for subscribing with: ${email.value}`)
+  email.value = ''
+}
 </script>

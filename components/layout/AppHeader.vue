@@ -1,33 +1,34 @@
 <script lang="ts" setup>
-const isMenuOpen = ref(false);
+const isMenuOpen = ref(false)
 
 const links = [
   {
-    name: "Home",
-    href: "/",
+    name: 'Home',
+    href: '/',
   },
   {
-    name: "Find Errands",
-    href: "/errands",
+    name: 'Find Errands',
+    href: '/errands',
   },
   {
-    name: "Find Runners",
-    href: "/runners",
+    name: 'Find Runners',
+    href: '/runners',
   },
   {
-    name: "How It Works",
-    href: "/how-it-works",
+    name: 'How It Works',
+    href: '/how-it-works',
   },
   {
-    name: "About",
-    href: "/about",
+    name: 'About',
+    href: '/about',
   },
   {
-    name: "Contact",
-    href: "/contact",
+    name: 'Contact',
+    href: '/contact',
   },
-];
+]
 </script>
+
 <template>
   <header class="bg-white shadow-sm sticky top-0">
     <div class="container mx-auto py-4">
@@ -50,8 +51,7 @@ const links = [
             :to="link.href"
             active-class="text-primary"
             class="text-gray-dark hover:text-primary font-medium"
-            >{{ link.name }}</NuxtLink
-          >
+          >{{ link.name }}</NuxtLink>
         </nav>
 
         <!-- Actions -->
@@ -69,11 +69,19 @@ const links = [
 
           <!-- Mobile menu button -->
           <button
-            @click="isMenuOpen = !isMenuOpen"
             class="md:hidden p-2 text-gray-dark"
+            @click="isMenuOpen = !isMenuOpen"
           >
-            <Icon v-if="!isMenuOpen" name="mdi:menu" class="h-6 w-6" />
-            <Icon v-if="isMenuOpen" name="mdi:close" class="h-6 w-6" />
+            <Icon
+              v-if="!isMenuOpen"
+              name="mdi:menu"
+              class="h-6 w-6"
+            />
+            <Icon
+              v-if="isMenuOpen"
+              name="mdi:close"
+              class="h-6 w-6"
+            />
           </button>
         </div>
       </div>
@@ -90,8 +98,7 @@ const links = [
             :to="link.href"
             active-class="text-primary"
             class="text-gray-dark hover:text-primary font-medium"
-            >{{ link.name }}</NuxtLink
-          >
+          >{{ link.name }}</NuxtLink>
 
           <div class="flex space-x-4 pt-2">
             <button
