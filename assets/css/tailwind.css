@@ -128,7 +128,7 @@
     --accent-foreground: #35333f;
 
     --destructive: #e14f23; /* Red - adjusted for dark mode */
-    --destructive-foreground: #fbfbfb;
+    --destructive-foreground: #e14f19;
 
     --border: rgba(255, 255, 255, 0.1);
     --input: rgba(255, 255, 255, 0.15);

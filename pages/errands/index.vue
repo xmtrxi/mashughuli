@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { buttonVariants } from "~/components/ui/button";
+
 const errandsData = [
   {
     id: "1",
@@ -161,10 +163,13 @@ function resetFilters() {
           runners who can help you get it done.
         </p>
       </div>
-      <Button>
+      <NuxtLink
+        to="/errands/new"
+        :class="buttonVariants({ variant: 'default' })"
+      >
         <Icon name="mdi:add" />
         Post An Errand
-      </Button>
+      </NuxtLink>
     </div>
     <div class="space-y-6">
       <!-- Search and filter section -->
