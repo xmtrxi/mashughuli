@@ -16,10 +16,7 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
   },
   eslint: {
-    config: {
-      stylistic: true,
-      formatters: true,
-    },
+    config: {},
   },
   icon: {
     mode: "css",

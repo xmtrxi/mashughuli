@@ -21,7 +21,7 @@ const formSchema = toTypedSchema(
     priority: z.enum(["low", "medium", "high"]),
     budgetMin: z.number().min(5),
     budgetMax: z.number().min(5),
-    dueDate: z.date(),
+    dueDate: z.string(),
   }),
 );
 
@@ -30,10 +30,6 @@ const { handleSubmit, isFieldDirty, setErrors, values, setFieldValue } =
     validationSchema: formSchema,
   });
 
-const dueDate = computed({
-  get: () => (values.dueDate ? values.dueDate : undefined),
-  set: (val) => val,
-});
 const isSubmitting = ref(false);
 
 const onSubmit = handleSubmit((values) => {
@@ -224,27 +220,7 @@ const onSubmit = handleSubmit((values) => {
           <FormItem>
             <FormLabel>Due Date</FormLabel>
             <FormControl>
-              <Popover>
-                <PopoverTrigger as-child>
-                  <Button variant="outline" class="w-full text-left">
-                    {{ dueDate ? dueDate : "Pick a date" }}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent>
-                  <Calendar
-                    v-model="dueDate"
-                    @update:model-value="
-                      (v) => {
-                        if (v) {
-                          setFieldValue('dueDate', v.toString());
-                        } else {
-                          setFieldValue('dueDate', undefined);
-                        }
-                      }
-                    "
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input type="date" v-bind="componentField" />
             </FormControl>
             <FormMessage />
           </FormItem>
