@@ -114,7 +114,7 @@ const faqs = [
 <template>
   <div>
     <section
-      class="bg-gradient-to-b from-mashughuli-50 to-background py-16 md:py-24"
+      class="bg-gradient-to-b from-primary-200 to-background py-16 md:py-24"
     >
       <div class="container mx-auto px-4 text-center">
         <h1 class="text-4xl md:text-5xl font-bold mb-6">
@@ -137,7 +137,7 @@ const faqs = [
             class="bg-card border rounded-lg p-6 flex flex-col items-center text-center hover:shadow-md transition-shadow"
           >
             <div class="mb-4">
-              <Icon :name="step.icon" class="h-12 w-12 text-mashughuli-400" />
+              <Icon :name="step.icon" class="h-12 w-12 text-primary-400" />
             </div>
             <h3 class="text-xl font-semibold mb-2">{{ step.title }}</h3>
             <p class="text-muted-foreground">{{ step.description }}</p>
@@ -240,7 +240,7 @@ const faqs = [
     </section>
 
     <!-- FAQ Section -->
-    <section class="py-16 bg-mashughuli-50">
+    <section class="py-16 bg-primary-50">
       <div class="container mx-auto px-4">
         <div class="max-w-3xl mx-auto">
           <h2 class="text-3xl font-bold mb-8 text-center">
@@ -289,35 +289,35 @@ const faqs = [
 </template>
 <style scoped>
 /* Additional custom styles can be added here */
-.bg-mashughuli-50 {
+.bg-primary-50 {
   background-color: #f0f7ff;
 }
 
-.text-mashughuli-700 {
+.text-primary-700 {
   color: #1e58b0;
 }
 
-.text-mashughuli-800 {
+.text-primary-800 {
   color: #12468a;
 }
 
-.bg-mashughuli-600 {
+.bg-primary-600 {
   background-color: #2563eb;
 }
 
-.bg-mashughuli-700 {
+.bg-primary-700 {
   background-color: #1d4ed8;
 }
 
-.text-mashughuli-600 {
+.text-primary-600 {
   color: #2563eb;
 }
 
-.border-mashughuli-100 {
+.border-primary-100 {
   border-color: #e0eaff;
 }
 
-.bg-mashughuli-100 {
+.bg-primary-100 {
   background-color: #e0eaff;
 }
 /* Additional styles to enhance accessibility and dark mode support */

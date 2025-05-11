@@ -11,6 +11,16 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-50: var(--primary-50);
+  --color-primary-100: var(--primary-100);
+  --color-primary-200: var(--primary-200);
+  --color-primary-300: var(--primary-300);
+  --color-primary-400: var(--primary-400);
+  --color-primary-500: var(--primary-500);
+  --color-primary-600: var(--primary-600);
+  --color-primary-700: var(--primary-700);
+  --color-primary-800: var(--primary-800);
+  --color-primary-900: var(--primary-900);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -63,6 +73,16 @@
     --popover-foreground: #23232b;
 
     --primary: #5639e5; /* Merged colors favoring the brand purple */
+    --primary-50: #f2f0fd;
+    --primary-100: #ddd9fb;
+    --primary-200: #c2bbf7;
+    --primary-300: #a49af3;
+    --primary-400: #8778ef;
+    --primary-500: #6a56eb; /* Slightly lighter than base */
+    --primary-600: #5639e5; /* Your base brand color */
+    --primary-700: #472fbc;
+    --primary-800: #372693;
+    --primary-900: #261c6a;
     --primary-foreground: #f7f4fe;
 
     --secondary: #322d36; /* Secondary actions */

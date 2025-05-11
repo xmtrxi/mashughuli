@@ -77,7 +77,7 @@ const runners = [
 <template>
   <div>
     <section
-      class="bg-gradient-to-b from-primary-foreground to-background py-12 md:py-16"
+      class="bg-gradient-to-b from-primary-200 to-background py-12 md:py-16"
     >
       <div class="container mx-auto px-4">
         <h1 class="text-3xl md:text-4xl font-bold mb-6">
@@ -190,7 +190,7 @@ const runners = [
                   <span class="flex items-center">
                     <Icon
                       name="mdi:thumbs-up"
-                      class="h-4 w-4 text-mashughuli-400 mr-1"
+                      class="h-4 w-4 text-primary-400 mr-1"
                     />
                     {{ runner.completedErrands }} errands
                   </span>
