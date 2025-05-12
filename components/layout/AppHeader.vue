@@ -1,32 +1,34 @@
 <script lang="ts" setup>
-const isMenuOpen = ref(false)
+import { buttonVariants } from "../ui/button";
+
+const isMenuOpen = ref(false);
 
 const links = [
   {
-    name: 'Home',
-    href: '/',
+    name: "Home",
+    href: "/",
   },
   {
-    name: 'Find Errands',
-    href: '/errands',
+    name: "Find Errands",
+    href: "/errands",
   },
   {
-    name: 'Find Runners',
-    href: '/runners',
+    name: "Find Runners",
+    href: "/runners",
   },
   {
-    name: 'How It Works',
-    href: '/how-it-works',
+    name: "How It Works",
+    href: "/how-it-works",
   },
   {
-    name: 'About',
-    href: '/about',
+    name: "About",
+    href: "/about",
   },
   {
-    name: 'Contact',
-    href: '/contact',
+    name: "Contact",
+    href: "/contact",
   },
-]
+];
 </script>
 
 <template>
@@ -51,37 +53,44 @@ const links = [
             :to="link.href"
             active-class="text-primary"
             class="text-gray-dark hover:text-primary font-medium"
-          >{{ link.name }}</NuxtLink>
+            >{{ link.name }}</NuxtLink
+          >
         </nav>
 
         <!-- Actions -->
         <div class="flex items-center space-x-4">
-          <Button
-            class="hidden md:block px-4 py-2 bg-white text-primary border border-primary rounded-lg hover:bg-primary hover:text-white transition"
+          <NuxtLink
+            to="/auth/login"
+            :class="
+              buttonVariants({
+                variant: 'default',
+                class:
+                  'hidden md:block px-4 py-2 bg-white text-primary border border-primary rounded-lg hover:bg-primary hover:text-white transition',
+              })
+            "
           >
             Sign In
-          </Button>
-          <Button
-            class="hidden md:block px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition"
+          </NuxtLink>
+          <NuxtLink
+            to="/auth/register"
+            :class="
+              buttonVariants({
+                variant: 'default',
+                class:
+                  'hidden md:block px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition',
+              })
+            "
           >
             Join Now
-          </Button>
+          </NuxtLink>
 
           <!-- Mobile menu button -->
           <button
             class="md:hidden p-2 text-gray-dark"
             @click="isMenuOpen = !isMenuOpen"
           >
-            <Icon
-              v-if="!isMenuOpen"
-              name="mdi:menu"
-              class="h-6 w-6"
-            />
-            <Icon
-              v-if="isMenuOpen"
-              name="mdi:close"
-              class="h-6 w-6"
-            />
+            <Icon v-if="!isMenuOpen" name="mdi:menu" class="h-6 w-6" />
+            <Icon v-if="isMenuOpen" name="mdi:close" class="h-6 w-6" />
           </button>
         </div>
       </div>
@@ -98,7 +107,8 @@ const links = [
             :to="link.href"
             active-class="text-primary"
             class="text-gray-dark hover:text-primary font-medium"
-          >{{ link.name }}</NuxtLink>
+            >{{ link.name }}</NuxtLink
+          >
 
           <div class="flex space-x-4 pt-2">
             <button
