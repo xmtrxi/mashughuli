@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { buttonVariants } from "../ui/button";
+
 export interface Budget {
   min: number;
   max: number;
@@ -103,7 +105,11 @@ const capitalize = (val: string) => val.charAt(0).toUpperCase() + val.slice(1);
       <div class="flex items-center gap-2 text-sm">
         <span class="text-muted-foreground">{{ errand.bids }} bids</span>
       </div>
-      <Button @click="goToDetails">View Details</Button>
+      <NuxtLink
+        :class="buttonVariants({ variant: 'default' })"
+        :to="`/errands/${errand.id}`"
+        >View Details</NuxtLink
+      >
     </CardFooter>
   </Card>
 </template>
