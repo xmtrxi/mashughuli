@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { buttonVariants } from "~/components/ui/button";
+
 const runners = [
   {
     id: 1,
@@ -197,7 +199,13 @@ const runners = [
                 </div>
               </CardContent>
               <CardFooter>
-                <Button class="w-full">View Profile</Button>
+                <NuxtLink
+                  :class="
+                    buttonVariants({ variant: 'default', class: 'w-full' })
+                  "
+                  :to="`/runners/${runner.id}`"
+                  >View Profile</NuxtLink
+                >
               </CardFooter>
             </Card>
           </TabsContent>
