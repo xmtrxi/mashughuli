@@ -63,7 +63,7 @@ const links = [
             to="/auth/login"
             :class="
               buttonVariants({
-                variant: 'default',
+                variant: 'outline',
                 class:
                   'hidden md:block px-4 py-2 bg-white text-primary border border-primary rounded-lg hover:bg-primary hover:text-white transition',
               })
