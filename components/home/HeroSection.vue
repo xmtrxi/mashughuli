@@ -1,7 +1,7 @@
 <!-- components/HeroSection.vue -->
 <template>
   <section
-    class="relative bg-gradient-to-br from-primary-200 to-primary-50 text-white py-16 md:py-24"
+    class="relative bg-gradient-to-br from-primary-200 to-primary-50 text-black py-16 md:py-24"
   >
     <!-- Background pattern -->
     <div class="">
@@ -29,9 +29,7 @@
           >
             Your Errand Marketplace Platform
           </h1>
-          <p
-            class="text-lg md:text-xl mb-8 text-gray-100 max-w-lg mx-auto md:mx-0"
-          >
+          <p class="text-lg md:text-xl mb-8 max-w-lg mx-auto md:mx-0">
             Connect with reliable runners to get your errands done, or earn by
             helping others with their tasks.
           </p>
@@ -39,9 +37,7 @@
             class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start"
           >
             <Button> Post Errand </Button>
-            <Button
-              class="bg-secondary hover:bg-secondary-foreground text-primary"
-            >
+            <Button class="bg-secondary hover:bg-secondary-foreground">
               <Icon
                 name="arcticons:runnerup"
                 color="black"
@@ -71,7 +67,7 @@
                       class="h-12 w-12 mx-auto mb-4 text-white/80"
                     />
 
-                    <p class="text-white/90 font-medium">
+                    <p class="font-medium">
                       Connect with thousands of runners worldwide
                     </p>
                   </div>
