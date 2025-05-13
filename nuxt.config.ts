@@ -26,4 +26,12 @@ export default defineNuxtConfig({
     componentDir: "./components/ui",
     prefix: "",
   },
+  routeRules: {
+    "/": { prerender: true },
+    "/about": { prerender: true },
+    "/contact": { prerender: true },
+    "/how-it-works": { prerender: true },
+    "/auth/login": { prerender: true },
+    "/auth/register": { prerender: true },
+  },
 });
