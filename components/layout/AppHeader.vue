@@ -32,7 +32,7 @@ const links = [
 </script>
 
 <template>
-  <header class="bg-white shadow-sm sticky top-0">
+  <header class="bg-white shadow-sm sticky top-0 z-50 left-0 right-0">
     <div class="container mx-auto py-4">
       <div class="flex justify-between items-center">
         <!-- Logo -->

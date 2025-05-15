@@ -22,7 +22,7 @@ const props = defineProps<{
       <div
         class="h-8 w-8 rounded-full bg-muted flex items-center justify-center"
       >
-        <Icon :name="icon" class="h-4 w-4" />
+        <Icon :name="icon" class="h-4 w-4 z-0" />
       </div>
     </CardHeader>
     <CardContent>

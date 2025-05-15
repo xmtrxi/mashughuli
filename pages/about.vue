@@ -1,4 +1,6 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { buttonVariants } from "~/components/ui/button";
+</script>
 <template>
   <div class="">
     <section
@@ -152,18 +154,18 @@
           Mashughuli is here for you.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a
-            href="/register"
-            class="bg-primary text-primary-600 px-6 py-3 rounded-md font-medium hover:bg-opacity-90 transition-colors"
+          <NuxtLink
+            :to="`/auth/register`"
+            :class="buttonVariants({ variant: 'default' })"
           >
             Sign Up Now
-          </a>
-          <a
-            href="/contact"
-            class="border border-white text-white px-6 py-3 rounded-md font-medium hover:bg-white hover:bg-opacity-10 transition-colors"
+          </NuxtLink>
+          <NuxtLink
+            to="/contact"
+            :class="buttonVariants({ variant: 'secondary' })"
           >
             Contact Us
-          </a>
+          </NuxtLink>
         </div>
       </div>
     </section>
