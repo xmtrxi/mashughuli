@@ -34,4 +34,16 @@ export default defineNuxtConfig({
     "/auth/login": { prerender: true },
     "/auth/register": { prerender: true },
   },
+  app: {
+    pageTransition: {
+      name: "page",
+      mode: "out-in",
+      duration: 350,
+    },
+    layoutTransition: {
+      name: "layout",
+      mode: "out-in",
+      duration: 350,
+    },
+  },
 });
