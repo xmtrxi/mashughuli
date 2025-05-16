@@ -15,8 +15,9 @@ export default defineNuxtConfig({
   vite: {
     plugins: [tailwindcss()],
   },
-  eslint: {
-    config: {},
+  runtimeConfig: {
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
   },
   icon: {
     mode: "css",
@@ -44,6 +45,9 @@ export default defineNuxtConfig({
       name: "layout",
       mode: "out-in",
       duration: 350,
+    },
+    head: {
+      title: "Errands | Mashughuli",
     },
   },
 });
