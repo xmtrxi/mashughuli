@@ -8,6 +8,7 @@ export default defineNuxtConfig({
     "@nuxt/image",
     "@nuxt/scripts",
     "shadcn-nuxt",
+    "@prisma/nuxt",
   ],
   devtools: { enabled: true },
   css: ["~/assets/css/tailwind.css"],

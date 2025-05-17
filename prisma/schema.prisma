@@ -1,0 +1,502 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Enums
+enum UserRole {
+  requester
+  runner
+  admin
+}
+
+enum VerificationStatus {
+  pending
+  verified
+  rejected
+}
+
+enum UserStatus {
+  active
+  suspended
+  inactive
+}
+
+enum PriorityLevel {
+  low
+  medium
+  high
+  urgent
+}
+
+enum ErrandStatus {
+  draft
+  open
+  in_progress
+  completed
+  cancelled
+  disputed
+}
+
+enum BidStatus {
+  pending
+  accepted
+  rejected
+  expired
+}
+
+enum PointsTransactionType {
+  earned
+  spent
+  expired
+  bonus
+}
+
+enum PaymentMethodType {
+  credit_card
+  debit_card
+  paypal
+  bank_transfer
+  other
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+  refunded
+}
+
+enum NotificationType {
+  new_bid
+  bid_accepted
+  errand_update
+  message
+  payment
+  review
+  system_alert
+  achievement
+}
+
+enum DisputeStatus {
+  open
+  under_review
+  resolved
+  escalated
+}
+
+enum ResolutionType {
+  refund
+  partial_refund
+  no_refund
+  other
+}
+
+// Models
+model User {
+  id          String     @id @db.Uuid
+  email       String     @unique
+  fullName    String     @map("full_name")
+  avatarUrl   String?    @map("avatar_url")
+  phoneNumber String?    @map("phone_number")
+  primaryRole UserRole   @default(requester) @map("primary_role")
+  status      UserStatus @default(active)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime   @default(now()) @map("updated_at") @db.Timestamptz
+
+  // Relations
+  addresses            Address[]
+  runnerVerifications  RunnerVerification[]
+  createdErrands       Errand[]              @relation("RequesterErrands")
+  assignedErrands      Errand[]              @relation("RunnerErrands")
+  bids                 Bid[]
+  sentMessages         Message[]             @relation("SentMessages")
+  receivedMessages     Message[]             @relation("ReceivedMessages")
+  givenReviews         Review[]              @relation("GivenReviews")
+  receivedReviews      Review[]              @relation("ReceivedReviews")
+  points               Points?
+  pointsTransactions   PointsTransaction[]
+  userBadges           UserBadge[]
+  paymentMethods       PaymentMethod[]
+  paidTransactions     Transaction[]         @relation("PayerTransactions")
+  receivedTransactions Transaction[]         @relation("PayeeTransactions")
+  notifications        Notification[]
+  notificationSettings NotificationSettings?
+  filedDisputes        Dispute[]             @relation("FiledDisputes")
+  requesterDisputes    Dispute[]             @relation("RequesterDisputes")
+  runnerDisputes       Dispute[]             @relation("RunnerDisputes")
+  resolvedDisputes     Dispute[]             @relation("ResolvedDisputes")
+  activityLogs         UserActivityLog[]
+  uploadedFiles        ErrandFile[]
+
+  @@map("users")
+}
+
+model RunnerVerification {
+  id                    String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  runnerId              String             @map("runner_id") @db.Uuid
+  identityDocumentUrl   String?            @map("identity_document_url")
+  backgroundCheckStatus VerificationStatus @default(pending) @map("background_check_status")
+  identityVerifiedAt    DateTime?          @map("identity_verified_at") @db.Timestamptz
+  verificationNotes     String?            @map("verification_notes")
+  createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime           @default(now()) @map("updated_at") @db.Timestamptz
+
+  // Relations
+  runner User @relation(fields: [runnerId], references: [id], onDelete: Cascade)
+
+  @@map("runner_verifications")
+}
+
+model Address {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  addressLine1 String   @map("address_line1")
+  addressLine2 String?  @map("address_line2")
+  city         String
+  state        String
+  postalCode   String   @map("postal_code")
+  country      String   @default("USA")
+  latitude     Decimal? @db.Decimal(10, 8)
+  longitude    Decimal? @db.Decimal(11, 8)
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  errands Errand[]
+
+  @@map("addresses")
+}
+
+model ErrandCategory {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String   @unique
+  description String?
+  iconName    String?  @map("icon_name")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  // Relations
+  errands Errand[]
+
+  @@map("errand_categories")
+}
+
+model Errand {
+  id             String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  requesterId    String        @map("requester_id") @db.Uuid
+  runnerId       String?       @map("runner_id") @db.Uuid
+  categoryId     String        @map("category_id") @db.Uuid
+  title          String
+  description    String
+  addressId      String?       @map("address_id") @db.Uuid
+  customLocation String?       @map("custom_location")
+  latitude       Decimal?      @db.Decimal(10, 8)
+  longitude      Decimal?      @db.Decimal(11, 8)
+  startTime      DateTime?     @map("start_time") @db.Timestamptz
+  endTime        DateTime?     @map("end_time") @db.Timestamptz
+  deadline       DateTime?     @db.Timestamptz
+  budgetMin      Decimal?      @map("budget_min") @db.Decimal(10, 2)
+  budgetMax      Decimal?      @map("budget_max") @db.Decimal(10, 2)
+  finalPrice     Decimal?      @map("final_price") @db.Decimal(10, 2)
+  priority       PriorityLevel @default(medium)
+  status         ErrandStatus  @default(draft)
+  visibility     Boolean       @default(true)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime      @default(now()) @map("updated_at") @db.Timestamptz
+
+  // Relations
+  requester          User                @relation("RequesterErrands", fields: [requesterId], references: [id], onDelete: Cascade)
+  runner             User?               @relation("RunnerErrands", fields: [runnerId], references: [id], onDelete: SetNull)
+  category           ErrandCategory      @relation(fields: [categoryId], references: [id])
+  address            Address?            @relation(fields: [addressId], references: [id])
+  bids               Bid[]
+  messages           Message[]
+  reviews            Review[]
+  files              ErrandFile[]
+  transactions       Transaction[]
+  disputes           Dispute[]
+  pointsTransactions PointsTransaction[]
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([requesterId])
+  @@index([runnerId])
+  @@map("errands")
+}
+
+model ErrandFile {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  errandId   String   @map("errand_id") @db.Uuid
+  fileUrl    String   @map("file_url")
+  fileType   String   @map("file_type")
+  fileName   String   @map("file_name")
+  uploadedBy String   @map("uploaded_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  errand   Errand @relation(fields: [errandId], references: [id], onDelete: Cascade)
+  uploader User   @relation(fields: [uploadedBy], references: [id])
+
+  @@map("errand_files")
+}
+
+model Bid {
+  id                      String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  errandId                String    @map("errand_id") @db.Uuid
+  runnerId                String    @map("runner_id") @db.Uuid
+  price                   Decimal   @db.Decimal(10, 2)
+  estimatedCompletionTime DateTime? @map("estimated_completion_time") @db.Timestamptz
+  notes                   String?
+  experienceDetails       String?   @map("experience_details")
+  status                  BidStatus @default(pending)
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+
+  // Relations
+  errand Errand @relation(fields: [errandId], references: [id], onDelete: Cascade)
+  runner User   @relation(fields: [runnerId], references: [id], onDelete: Cascade)
+
+  @@unique([errandId, runnerId])
+  @@index([errandId])
+  @@index([runnerId])
+  @@map("bids")
+}
+
+model Message {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  errandId    String   @map("errand_id") @db.Uuid
+  senderId    String   @map("sender_id") @db.Uuid
+  recipientId String   @map("recipient_id") @db.Uuid
+  message     String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  errand    Errand @relation(fields: [errandId], references: [id], onDelete: Cascade)
+  sender    User   @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User   @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([errandId])
+  @@index([senderId, recipientId])
+  @@map("messages")
+}
+
+model Review {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  errandId   String   @map("errand_id") @db.Uuid
+  reviewerId String   @map("reviewer_id") @db.Uuid
+  revieweeId String   @map("reviewee_id") @db.Uuid
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  errand   Errand @relation(fields: [errandId], references: [id], onDelete: Cascade)
+  reviewer User   @relation("GivenReviews", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewee User   @relation("ReceivedReviews", fields: [revieweeId], references: [id], onDelete: Cascade)
+
+  @@unique([errandId, reviewerId, revieweeId])
+  @@index([revieweeId])
+  @@map("reviews")
+}
+
+model Points {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId       String   @unique @map("user_id") @db.Uuid
+  pointsEarned Int      @default(0) @map("points_earned")
+  pointsSpent  Int      @default(0) @map("points_spent")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("points")
+}
+
+model PointsTransaction {
+  id              String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId          String                @map("user_id") @db.Uuid
+  errandId        String?               @map("errand_id") @db.Uuid
+  transactionType PointsTransactionType @map("transaction_type")
+  pointsAmount    Int                   @map("points_amount")
+  description     String?
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  errand Errand? @relation(fields: [errandId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("points_transactions")
+}
+
+model Badge {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String   @unique
+  description String
+  iconUrl     String   @map("icon_url")
+  pointsValue Int      @default(0) @map("points_value")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  badgeId   String   @map("badge_id") @db.Uuid
+  awardedAt DateTime @default(now()) @map("awarded_at") @db.Timestamptz
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+model PaymentMethod {
+  id           String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId       String            @map("user_id") @db.Uuid
+  methodType   PaymentMethodType @map("method_type")
+  isDefault    Boolean           @default(false) @map("is_default")
+  lastFour     String?           @map("last_four")
+  paymentToken String?           @map("payment_token")
+  providerId   String?           @map("provider_id")
+  expiresAt    DateTime?         @map("expires_at") @db.Timestamptz
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime          @default(now()) @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("payment_methods")
+}
+
+model Transaction {
+  id                   String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  errandId             String        @map("errand_id") @db.Uuid
+  payerId              String        @map("payer_id") @db.Uuid
+  payeeId              String        @map("payee_id") @db.Uuid
+  paymentMethodId      String?       @map("payment_method_id") @db.Uuid
+  amount               Decimal       @db.Decimal(10, 2)
+  platformFee          Decimal       @map("platform_fee") @db.Decimal(10, 2)
+  status               PaymentStatus @default(pending)
+  transactionReference String?       @map("transaction_reference")
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime      @default(now()) @map("updated_at") @db.Timestamptz
+
+  // Relations
+  errand        Errand         @relation(fields: [errandId], references: [id], onDelete: Cascade)
+  payer         User           @relation("PayerTransactions", fields: [payerId], references: [id], onDelete: Cascade)
+  payee         User           @relation("PayeeTransactions", fields: [payeeId], references: [id], onDelete: Cascade)
+  paymentMethod PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
+
+  @@map("transactions")
+}
+
+model Notification {
+  id        String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String
+  message   String
+  relatedId String?          @map("related_id") @db.Uuid
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model NotificationSettings {
+  id                      String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId                  String   @unique @map("user_id") @db.Uuid
+  emailNotifications      Boolean  @default(true) @map("email_notifications")
+  pushNotifications       Boolean  @default(true) @map("push_notifications")
+  newBidAlert             Boolean  @default(true) @map("new_bid_alert")
+  messageAlert            Boolean  @default(true) @map("message_alert")
+  errandUpdateAlert       Boolean  @default(true) @map("errand_update_alert")
+  paymentAlert            Boolean  @default(true) @map("payment_alert")
+  reviewAlert             Boolean  @default(true) @map("review_alert")
+  marketingCommunications Boolean  @default(false) @map("marketing_communications")
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+model Dispute {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  errandId        String          @map("errand_id") @db.Uuid
+  requesterId     String          @map("requester_id") @db.Uuid
+  runnerId        String          @map("runner_id") @db.Uuid
+  filedBy         String          @map("filed_by") @db.Uuid
+  reason          String
+  details         String
+  status          DisputeStatus   @default(open)
+  resolutionType  ResolutionType? @map("resolution_type")
+  resolutionNotes String?         @map("resolution_notes")
+  resolvedAt      DateTime?       @map("resolved_at") @db.Timestamptz
+  resolvedBy      String?         @map("resolved_by") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime        @default(now()) @map("updated_at") @db.Timestamptz
+
+  // Relations
+  errand      Errand @relation(fields: [errandId], references: [id], onDelete: Cascade)
+  requester   User   @relation("RequesterDisputes", fields: [requesterId], references: [id], onDelete: Cascade)
+  runner      User   @relation("RunnerDisputes", fields: [runnerId], references: [id], onDelete: Cascade)
+  filedByUser User   @relation("FiledDisputes", fields: [filedBy], references: [id], onDelete: Cascade)
+  resolver    User?  @relation("ResolvedDisputes", fields: [resolvedBy], references: [id], onDelete: SetNull)
+
+  @@map("disputes")
+}
+
+model UserActivityLog {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  action    String
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_activity_logs")
+}
+
+model SystemSetting {
+  id                 String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  settingKey         String   @unique @map("setting_key")
+  settingValue       String?  @map("setting_value")
+  settingDescription String?  @map("setting_description")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("system_settings")
+}
