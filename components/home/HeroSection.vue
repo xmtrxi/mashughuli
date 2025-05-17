@@ -37,7 +37,7 @@
             class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start"
           >
             <Button> Post Errand </Button>
-            <Button class="bg-secondary hover:bg-secondary-foreground">
+            <Button variant="secondary">
               <Icon
                 name="arcticons:runnerup"
                 color="black"
