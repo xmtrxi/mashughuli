@@ -51,4 +51,20 @@ export default defineNuxtConfig({
       title: "Errands | Mashughuli",
     },
   },
+  nitro: {
+    openAPI: {
+      route: "/_docs/openapi.json",
+      ui: {
+        scalar: {
+          route: "/_docs/scalar",
+        },
+        swagger: {
+          route: "/_docs/swagger",
+        },
+      },
+    },
+  },
+  imports: {
+    dirs: ["./server/services", "./server/utils"],
+  },
 });
