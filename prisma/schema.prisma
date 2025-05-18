@@ -110,6 +110,7 @@ model User {
   phoneNumber String?    @map("phone_number")
   primaryRole UserRole   @default(requester) @map("primary_role")
   status      UserStatus @default(active)
+  password    String
   createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime   @default(now()) @map("updated_at") @db.Timestamptz
 

@@ -43,6 +43,7 @@ CREATE TABLE "users" (
     "phone_number" TEXT,
     "primary_role" "UserRole" NOT NULL DEFAULT 'requester',
     "status" "UserStatus" NOT NULL DEFAULT 'active',
+    "password" TEXT NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
