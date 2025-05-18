@@ -19,6 +19,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    jwtSecret: process.env.NUXT_JWT_SECRET,
   },
   icon: {
     mode: "css",
@@ -52,6 +53,9 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
+    experimental: {
+      openAPI: true,
+    },
     openAPI: {
       route: "/_docs/openapi.json",
       ui: {
