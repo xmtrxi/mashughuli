@@ -1,48 +1,103 @@
 import { Errand, Prisma } from "@prisma/client";
 import prisma from "~/lib/prisma";
+import {
+  createErrandSchema,
+  updateErrandSchema,
+} from "../schemas/errands.schema";
+import { z } from "zod";
 
 export const errandService = () => {
   const getErrands = async () => {
-    return await prisma.errand.findMany();
-  };
-  const createErrands = async (errand: Omit<Errand, "id" | "createdAt">) => {
-    return await prisma.errand.create({
-      data: errand,
-    });
-  };
-  const getErrandById = async (id: string) => {
-    const errand = await prisma.errand.findFirst({
-      where: {
-        id: id,
+    return await prisma.errand.findMany({
+      include: {
+        requester: {
+          omit: {
+            password: true,
+          },
+        },
       },
     });
-    if (errand) {
-      return errand;
+  };
+  const createErrands = async (
+    errand: z.infer<typeof createErrandSchema>,
+    userId: string,
+  ) => {
+    try {
+      return await prisma.errand.create({
+        data: {
+          ...errand,
+          requesterId: userId,
+        },
+      });
+    } catch (e: any) {
+      console.log(e);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "An error occurred!!",
+      });
     }
-    return null;
+  };
+  const getErrandById = async (id: string) => {
+    try {
+      return await prisma.errand.findFirst({
+        where: {
+          id: id,
+        },
+      });
+    } catch (e: any) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: "Errand not found",
+        message: "Errand not found",
+      });
+    }
   };
   const updateErrand = async (
     id: string,
-    errand: Omit<Errand, "createdAt" | "updatedAt" | "requesterId">,
+    errand: z.infer<typeof updateErrandSchema>,
   ) => {
-    const data = await prisma.errand.update({
-      where: {
-        id: id,
-      },
-      data: {
-        ...errand,
-        updatedAt: new Date(),
-      },
-    });
-    return data;
+    try {
+      const existing = await prisma.errand.findUnique({
+        where: { id },
+      });
+
+      if (!existing) {
+        throw createError({
+          statusCode: 404,
+          statusMessage: "Errand not found",
+        });
+      }
+
+      return await prisma.errand.update({
+        where: {
+          id: id,
+        },
+        data: {
+          ...errand,
+          updatedAt: new Date(),
+        },
+      });
+    } catch (e: any) {
+      console.log(e);
+      throw createError({
+        statusCode: 500,
+        statusMessage: "An error occurred!!",
+      });
+    }
   };
   const deleteErrand = async (id: string) => {
-    const data = await prisma.errand.delete({
-      where: {
-        id: id,
-      },
-    });
-    return data;
+    try {
+      return await prisma.errand.delete({
+        where: {
+          id: id,
+        },
+      });
+    } catch (e: any) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: "An error occurred!",
+      });
+    }
   };
 
   return {
