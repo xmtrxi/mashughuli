@@ -3,6 +3,7 @@ import { compare, hash } from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "~/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
+import type { H3Event } from "h3";
 
 const runtime = useRuntimeConfig();
 const jwtSecret = runtime.jwtSecret;
@@ -99,6 +100,27 @@ export const registerUser = async (
     return createError({
       message: e.message || "An error occurred!!",
       statusCode: 500,
+    });
+  }
+};
+
+export const useAuthUser = async (_event: H3Event) => {
+  try {
+    const authHeader = getRequestHeader(_event, "authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: "Unauthorized: No token provided",
+      });
+    }
+    const token = authHeader.split(" ")[1];
+
+    const decoded = jwt.verify(token, jwtSecret);
+    return decoded as Omit<User, "createdAt" | "updatedAt" | "password">;
+  } catch (e: any) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: "Invalid auth token",
     });
   }
 };

@@ -9,7 +9,9 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "primsa migrate dev"
   },
   "dependencies": {
     "@nuxt/eslint": "1.4.0",
@@ -48,7 +50,6 @@
   "devDependencies": {
     "@iconify-json/arcticons": "^1.2.26",
     "@iconify-json/mdi": "^1.2.3",
-    "@prisma/nuxt": "^0.3.0",
     "@types/bcrypt": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.15.18",
