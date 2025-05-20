@@ -2,7 +2,6 @@
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import * as z from "zod";
-
 import {
   FormControl,
   FormDescription,
@@ -12,6 +11,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "vue-sonner";
+
 useServerSeoMeta({
   title: "Create a Mashughuli Account | Join as a Requester or Runner",
   ogTitle: "Create a Mashughuli Account | Join as a Requester or Runner",
@@ -28,8 +28,9 @@ useServerSeoMeta({
     "Sign up for Mashughuli to start posting errands or earning by completing tasks. Create your account as a requester or runner today.",
   twitterImage: "/images/seo/mashughuli.png",
   twitterSite: "@mashughuli",
-  robots: "noindex, nofollow", // Usually better to not index registration pages
+  robots: "noindex, nofollow",
 });
+
 // Define form schema for validation
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -62,24 +63,20 @@ const isSubmitting = ref(false);
 const onSubmit = handleSubmit(async (values) => {
   isSubmitting.value = true;
   try {
-    // This would be where you integrate with your auth backend
-    console.log("Form submitted:", values);
+    const { data, success } = await $fetch("/api/auth/register", {
+      method: "POST",
+      body: values,
+    });
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    if (props.mode === "login") {
-      toast.success("Login successful!");
-      router.push("/dashboard");
-    } else {
+    if (data.data) {
       toast.success(
         "Registration successful! Please check your email to verify your account.",
       );
-      router.push("/login");
+      await router.push("/auth/login");
     }
   } catch (error) {
-    toast.error("An error occurred. Please try again.");
-    console.error("Auth error:", error);
+    console.log(error.message);
+    toast.error(error.statusMessage);
   } finally {
     isSubmitting.value = false;
   }

@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import prisma from "~/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 import type { H3Event } from "h3";
+import { z } from "zod";
+import { userSchema } from "~/server/schemas/auth.schema";
 
 const runtime = useRuntimeConfig();
 const jwtSecret = runtime.jwtSecret;
@@ -63,9 +65,7 @@ export const loginUser = async (formData: {
   };
 };
 
-export const registerUser = async (
-  formData: Omit<User, "id" | "createdAt" | "updatedAt">,
-) => {
+export const registerUser = async (formData: z.infer<typeof userSchema>) => {
   try {
     const user = await prisma.user.findUnique({
       where: {

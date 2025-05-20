@@ -9,6 +9,7 @@ const layout = computed(() => {
   <div>
     <div class="font-sans min-h-screen">
       <NuxtRouteAnnouncer />
+      <Toaster rich-colors position="top-center" />
       <NuxtLayout :name="layout">
         <NuxtPage />
       </NuxtLayout>

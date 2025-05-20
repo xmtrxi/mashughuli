@@ -103,7 +103,7 @@ enum ResolutionType {
 
 // Models
 model User {
-  id          String     @id @db.Uuid
+  id          String     @id @default(uuid()) @db.Uuid
   email       String     @unique
   fullName    String     @map("full_name")
   avatarUrl   String?    @map("avatar_url")

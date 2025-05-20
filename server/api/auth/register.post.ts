@@ -1,3 +1,4 @@
+import prisma from "~/lib/prisma";
 import { userSchema } from "~/server/schemas/auth.schema";
 import { registerUser } from "~/server/services/auth/auth.service";
 
@@ -10,5 +11,10 @@ export default defineEventHandler(async (_event) => {
       message: error.message,
     });
   }
-  return await registerUser(data);
+
+  const user = await registerUser(data);
+  return {
+    success: true,
+    data: user,
+  };
 });
