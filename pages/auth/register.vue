@@ -11,6 +11,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "vue-sonner";
+import { userSchema } from "~/shared/schemas/auth.schema";
+import type { User } from "@prisma/client";
 
 useServerSeoMeta({
   title: "Create a Mashughuli Account | Join as a Requester or Runner",
@@ -31,28 +33,14 @@ useServerSeoMeta({
   robots: "noindex, nofollow",
 });
 
-// Define form schema for validation
-const formSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number"),
-  userType: z.enum(["requester", "runner"], {
-    required_error: "Please select a user type",
-  }),
-});
-
 // Router
 const router = useRouter();
 
 // Form handling
 const { handleSubmit, errors, isFieldDirty } = useForm({
-  validationSchema: toTypedSchema(formSchema),
+  validationSchema: toTypedSchema(userSchema),
   initialValues: {
-    userType: "requester",
+    primaryRole: "requester",
   },
 });
 
@@ -63,20 +51,22 @@ const isSubmitting = ref(false);
 const onSubmit = handleSubmit(async (values) => {
   isSubmitting.value = true;
   try {
-    const { data, success } = await $fetch("/api/auth/register", {
-      method: "POST",
-      body: values,
-    });
+    const { data } = await useApiRequest<ApiResponse<User>>(
+      "/api/auth/register",
+      {
+        method: "POST",
+        body: values,
+      },
+    );
 
-    if (data.data) {
+    if (data) {
       toast.success(
         "Registration successful! Please check your email to verify your account.",
       );
       await router.push("/auth/login");
     }
-  } catch (error) {
-    console.log(error.message);
-    toast.error(error.statusMessage);
+  } catch (error: any) {
+    toast.error(error.message);
   } finally {
     isSubmitting.value = false;
   }
@@ -100,6 +90,23 @@ const onSubmit = handleSubmit(async (values) => {
       <form @submit.prevent="onSubmit" class="space-y-4">
         <FormField
           v-slot="{ componentField }"
+          name="fullName"
+          :validate-on-blur="!isFieldDirty"
+        >
+          <FormItem>
+            <FormLabel>Full Name</FormLabel>
+            <FormControl>
+              <Input
+                type="text"
+                placeholder="Your Full Name"
+                v-bind="componentField"
+              />
+            </FormControl>
+            <FormMessage>{{ errors.fullName }}</FormMessage>
+          </FormItem>
+        </FormField>
+        <FormField
+          v-slot="{ componentField }"
           name="email"
           :validate-on-blur="!isFieldDirty"
         >
@@ -113,6 +120,24 @@ const onSubmit = handleSubmit(async (values) => {
               />
             </FormControl>
             <FormMessage>{{ errors.email }}</FormMessage>
+          </FormItem>
+        </FormField>
+
+        <FormField
+          v-slot="{ componentField }"
+          name="phoneNumber"
+          :validate-on-blur="!isFieldDirty"
+        >
+          <FormItem>
+            <FormLabel>Phone Number</FormLabel>
+            <FormControl>
+              <Input
+                type="text"
+                placeholder="Your phone Number"
+                v-bind="componentField"
+              />
+            </FormControl>
+            <FormMessage>{{ errors.phoneNumber }}</FormMessage>
           </FormItem>
         </FormField>
 
@@ -168,7 +193,7 @@ const onSubmit = handleSubmit(async (values) => {
                 </FormItem>
               </RadioGroup>
             </FormControl>
-            <FormMessage>{{ errors.userType }}</FormMessage>
+            <FormMessage>{{ errors.primaryRole }}</FormMessage>
           </FormItem>
         </FormField>
 

@@ -13,6 +13,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "vue-sonner";
+import { loginSchema } from "~/shared/schemas/auth.schema";
+import type { User } from "@prisma/client";
 useServerSeoMeta({
   title: "Sign In to Mashughuli | Access Your Account",
   ogTitle: "Sign In to Mashughuli | Access Your Account",
@@ -31,23 +33,13 @@ useServerSeoMeta({
   twitterSite: "@mashughuli",
   robots: "noindex, nofollow", // Usually better to not index login pages
 });
-// Define form schema for validation
-const formSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number"),
-});
 
 // Router
 const router = useRouter();
 
 // Form handling
 const { handleSubmit, errors, isFieldDirty } = useForm({
-  validationSchema: toTypedSchema(formSchema),
+  validationSchema: toTypedSchema(loginSchema),
 });
 
 // Submission state
@@ -57,17 +49,28 @@ const isSubmitting = ref(false);
 const onSubmit = handleSubmit(async (values) => {
   isSubmitting.value = true;
   try {
-    // This would be where you integrate with your auth backend
-    console.log("Form submitted:", values);
+    const { data } = await useApiRequest<ApiResponse<User>>("/api/auth/login", {
+      method: "POST",
+      body: values,
+    });
+    if (data) {
+      toast.success("Login Success");
+      router.push("/dashboard");
+    }
+  } catch (error: any) {
+    // Show the most relevant error message to the user
+    toast.error(error.data?.message || "An unknown error occurred");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    toast.success("Login successful!");
-    router.push("/dashboard");
-  } catch (error) {
-    toast.error("An error occurred. Please try again.");
-    console.error("Auth error:", error);
+    // Log all available error details
+    console.error("Auth error:", {
+      statusCode: error.statusCode,
+      statusMessage: error.statusMessage,
+      data: error.data,
+      message: error.message,
+      // Sometimes, the response body is in _data
+      responseData: error.response?._data,
+      fullError: error,
+    });
   } finally {
     isSubmitting.value = false;
   }
@@ -97,42 +100,40 @@ const navigateToLogin = () => {
         </p>
       </div>
 
-      <Form>
-        <form @submit.prevent="onSubmit" class="space-y-4">
-          <FormField v-slot="{ componentField }" name="email">
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  placeholder="Your email address"
-                  v-bind="componentField"
-                />
-              </FormControl>
-              <FormMessage>{{ errors.email }}</FormMessage>
-            </FormItem>
-          </FormField>
+      <form @submit.prevent="onSubmit" class="space-y-4">
+        <FormField v-slot="{ componentField }" name="email">
+          <FormItem>
+            <FormLabel>Email</FormLabel>
+            <FormControl>
+              <Input
+                type="email"
+                placeholder="Your email address"
+                v-bind="componentField"
+              />
+            </FormControl>
+            <FormMessage>{{ errors.email }}</FormMessage>
+          </FormItem>
+        </FormField>
 
-          <FormField v-slot="{ componentField }" name="password">
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input
-                  type="password"
-                  placeholder="Your password"
-                  v-bind="componentField"
-                />
-              </FormControl>
+        <FormField v-slot="{ componentField }" name="password">
+          <FormItem>
+            <FormLabel>Password</FormLabel>
+            <FormControl>
+              <Input
+                type="password"
+                placeholder="Your password"
+                v-bind="componentField"
+              />
+            </FormControl>
 
-              <FormMessage>{{ errors.password }}</FormMessage>
-            </FormItem>
-          </FormField>
+            <FormMessage>{{ errors.password }}</FormMessage>
+          </FormItem>
+        </FormField>
 
-          <Button type="submit" class="w-full" :disabled="isSubmitting">
-            {{ isSubmitting ? "Processing..." : "Sign In" }}
-          </Button>
-        </form>
-      </Form>
+        <Button type="submit" class="w-full" :disabled="isSubmitting">
+          {{ isSubmitting ? "Processing..." : "Sign In" }}
+        </Button>
+      </form>
 
       <div class="text-center text-sm">
         <p>

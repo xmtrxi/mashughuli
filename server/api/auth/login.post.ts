@@ -12,5 +12,5 @@ export default defineEventHandler(async (event) => {
       }),
     );
   }
-  return await loginUser(data);
+  return await loginUser(data, event);
 });

@@ -23,17 +23,20 @@ const generateJwtToken = (user: User) => {
   );
 };
 
-export const loginUser = async (formData: {
-  email: string;
-  password: string;
-}) => {
+export const loginUser = async (
+  formData: {
+    email: string;
+    password: string;
+  },
+  event: H3Event,
+) => {
   const user = await prisma.user.findUnique({
     where: {
       email: formData.email,
     },
   });
   if (!user) {
-    return createError({
+    throw createError({
       message: "User not found",
       statusCode: 401,
     });
@@ -42,13 +45,19 @@ export const loginUser = async (formData: {
   const isPasswordValid = await compare(formData.password, user.password);
 
   if (!isPasswordValid) {
-    return createError({
+    throw createError({
       message: "Invalid Credentials",
       statusCode: 401,
     });
   }
 
   const token = generateJwtToken(user);
+
+  setCookie(event, "auth_token", token, {
+    httpOnly: true,
+    path: "/",
+    maxAge: 60 * 60 * 24,
+  });
 
   return {
     success: true,
@@ -73,7 +82,7 @@ export const registerUser = async (formData: z.infer<typeof userSchema>) => {
       },
     });
     if (user) {
-      return createError({
+      throw createError({
         message: "The user already exists",
         statusCode: 409,
       });

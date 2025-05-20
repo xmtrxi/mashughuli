@@ -9,7 +9,9 @@ export const userSchema = z.object({
   fullName: z.string(),
   avatarUrl: z.string().optional(),
   phoneNumber: z.string(),
-  primaryRole: z.string(),
+  primaryRole: z.enum(["requester", "runner"], {
+    required_error: "Please select a user type",
+  }),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
