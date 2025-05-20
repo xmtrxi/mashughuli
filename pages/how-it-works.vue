@@ -1,6 +1,23 @@
 <script setup lang="ts">
 import { buttonVariants } from "~/components/ui/button";
-
+useServerSeoMeta({
+  title: "How Mashughuli Works | Post Errands or Become a Runner",
+  ogTitle: "How Mashughuli Works | Post Errands or Become a Runner",
+  description:
+    "Learn how Mashughuli connects task requesters with reliable runners. Post errands, choose a runner, track progress, and pay securely.",
+  ogDescription:
+    "Learn how Mashughuli connects task requesters with reliable runners. Post errands, choose a runner, track progress, and pay securely.",
+  ogImage: "/images/seo/mashughuli.png",
+  ogUrl: "/how-it-works",
+  ogType: "website",
+  twitterCard: "summary_large_image",
+  twitterTitle: "How Mashughuli Works | Post Errands or Become a Runner",
+  twitterDescription:
+    "Learn how Mashughuli connects task requesters with reliable runners. Post errands, choose a runner, track progress, and pay securely.",
+  twitterImage: "/images/seo/mashughuli.png",
+  twitterSite: "@mashughuli",
+  robots: "index, follow",
+});
 const steps = [
   {
     icon: "mdi:clipboard-check-outline",

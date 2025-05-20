@@ -1,5 +1,23 @@
 <script setup lang="ts">
 import { buttonVariants } from "~/components/ui/button";
+useServerSeoMeta({
+  title: "About Mashughuli | Our Story and Mission",
+  ogTitle: "About Mashughuli | Our Story and Mission",
+  description:
+    "Learn about Mashughuli, our founding story, mission, values, and impact in transforming how everyday tasks get done across East Africa.",
+  ogDescription:
+    "Learn about Mashughuli, our founding story, mission, values, and impact in transforming how everyday tasks get done across East Africa.",
+  ogImage: "/images/seo/mashughuli.png",
+  ogUrl: "/about",
+  ogType: "website",
+  twitterCard: "summary_large_image",
+  twitterTitle: "About Mashughuli | Our Story and Mission",
+  twitterDescription:
+    "Learn about Mashughuli, our founding story, mission, values, and impact in transforming how everyday tasks get done across East Africa.",
+  twitterImage: "/images/seo/mashughuli.png",
+  twitterSite: "@mashughuli",
+  robots: "index, follow",
+});
 </script>
 <template>
   <div class="">

@@ -12,7 +12,24 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "vue-sonner";
-
+useServerSeoMeta({
+  title: "Create a Mashughuli Account | Join as a Requester or Runner",
+  ogTitle: "Create a Mashughuli Account | Join as a Requester or Runner",
+  description:
+    "Sign up for Mashughuli to start posting errands or earning by completing tasks. Create your account as a requester or runner today.",
+  ogDescription:
+    "Sign up for Mashughuli to start posting errands or earning by completing tasks. Create your account as a requester or runner today.",
+  ogImage: "/images/seo/mashughuli.png",
+  ogUrl: "/auth/register",
+  ogType: "website",
+  twitterCard: "summary_large_image",
+  twitterTitle: "Create a Mashughuli Account | Join as a Requester or Runner",
+  twitterDescription:
+    "Sign up for Mashughuli to start posting errands or earning by completing tasks. Create your account as a requester or runner today.",
+  twitterImage: "/images/seo/mashughuli.png",
+  twitterSite: "@mashughuli",
+  robots: "noindex, nofollow", // Usually better to not index registration pages
+});
 // Define form schema for validation
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),

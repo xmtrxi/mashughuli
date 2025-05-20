@@ -20,7 +20,24 @@ interface ContactInfo {
   details: string;
   action: string;
 }
-
+useServerSeoMeta({
+  title: "Contact Mashughuli | Get in Touch With Our Team",
+  ogTitle: "Contact Mashughuli | Get in Touch With Our Team",
+  description:
+    "Have questions about Mashughuli? Reach out to our team through our contact form, email, phone, or visit our office in Nairobi.",
+  ogDescription:
+    "Have questions about Mashughuli? Reach out to our team through our contact form, email, phone, or visit our office in Nairobi.",
+  ogImage: "/images/seo/mashughuli.png",
+  ogUrl: "/contact",
+  ogType: "website",
+  twitterCard: "summary_large_image",
+  twitterTitle: "Contact Mashughuli | Get in Touch With Our Team",
+  twitterDescription:
+    "Have questions about Mashughuli? Reach out to our team through our contact form, email, phone, or visit our office in Nairobi.",
+  twitterImage: "/images/seo/mashughuli.png",
+  twitterSite: "@mashughuli",
+  robots: "index, follow",
+});
 // Form state
 const form = reactive<FormData>({
   name: "",
