@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "primsa migrate dev"
+    "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
     "@nuxt/eslint": "1.4.0",

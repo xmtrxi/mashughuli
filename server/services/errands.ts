@@ -3,7 +3,7 @@ import prisma from "~/lib/prisma";
 import {
   createErrandSchema,
   updateErrandSchema,
-} from "../schemas/errands.schema";
+} from "~/shared/schemas/errands.schema";
 import { z } from "zod";
 
 export const errandService = () => {

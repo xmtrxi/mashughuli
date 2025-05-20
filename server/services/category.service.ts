@@ -2,7 +2,7 @@ import prisma from "~/lib/prisma";
 import {
   createErrandCategorySchema,
   updateErrandCategorySchema,
-} from "../schemas/category.schema";
+} from "~/shared/schemas/category.schema";
 import { z } from "zod";
 
 export const categoryService = () => {

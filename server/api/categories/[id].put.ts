@@ -1,4 +1,4 @@
-import { updateErrandCategorySchema } from "~/server/schemas/category.schema";
+import { updateErrandCategorySchema } from "~/shared/schemas/category.schema";
 import { useAuthUser } from "~/server/services/auth/auth.service";
 import { categoryService } from "~/server/services/category.service";
 

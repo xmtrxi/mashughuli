@@ -1,4 +1,4 @@
-import { updateErrandSchema } from "~/server/schemas/errands.schema";
+import { updateErrandSchema } from "~/shared/schemas/errands.schema";
 import { errandService } from "~/server/services/errands";
 
 export default defineEventHandler(async (event) => {

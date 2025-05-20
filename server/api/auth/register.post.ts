@@ -1,5 +1,5 @@
 import prisma from "~/lib/prisma";
-import { userSchema } from "~/server/schemas/auth.schema";
+import { userSchema } from "~/shared/schemas/auth.schema";
 import { registerUser } from "~/server/services/auth/auth.service";
 
 export default defineEventHandler(async (_event) => {

@@ -1,4 +1,4 @@
-import { createErrandSchema } from "~/server/schemas/errands.schema";
+import { createErrandSchema } from "~/shared/schemas/errands.schema";
 import { useAuthUser } from "~/server/services/auth/auth.service";
 import { errandService } from "~/server/services/errands";
 

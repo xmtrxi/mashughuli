@@ -5,7 +5,7 @@ import prisma from "~/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 import type { H3Event } from "h3";
 import { z } from "zod";
-import { userSchema } from "~/server/schemas/auth.schema";
+import { userSchema } from "~/shared/schemas/auth.schema";
 
 const runtime = useRuntimeConfig();
 const jwtSecret = runtime.jwtSecret;
