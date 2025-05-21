@@ -1,4 +1,4 @@
-import { Errand, ErrandStatus, PriorityLevel } from "@prisma/client";
+import { ErrandStatus, PriorityLevel } from "@prisma/client";
 import { z } from "zod";
 export const createErrandSchema = z.object({
   categoryId: z.string().uuid(),
