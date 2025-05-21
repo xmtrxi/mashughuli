@@ -1,4 +1,4 @@
-export function useApiFetch<T>(url: string, options: any = {}) {
+export async function useApiFetch<T>(url: string, options: any = {}) {
   const token = useCookie("auth_token");
   const headers: Record<string, string> = {
     ...options.headers,
@@ -8,7 +8,7 @@ export function useApiFetch<T>(url: string, options: any = {}) {
     headers["Authorization"] = `Bearer ${token.value}`;
   }
 
-  return useFetch<T>(url, {
+  return await useFetch<T>(url, {
     ...options,
     headers,
   });
