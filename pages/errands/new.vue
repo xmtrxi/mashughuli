@@ -11,37 +11,34 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { createErrandSchema } from "~/shared/schemas/errands.schema";
+import type { Errand, ErrandCategory } from "@prisma/client";
 
-const formSchema = toTypedSchema(
-  z.object({
-    title: z.string().min(5).max(100),
-    description: z.string().min(20).max(1000),
-    location: z.string().min(5),
-    category: z.string(),
-    priority: z.enum(["low", "medium", "high"]),
-    budgetMin: z.number().min(5),
-    budgetMax: z.number().min(5),
-    dueDate: z.string(),
-  }),
-);
-
-const { handleSubmit, isFieldDirty, setErrors, values, setFieldValue } =
-  useForm({
-    validationSchema: formSchema,
-  });
+const { handleSubmit, isFieldDirty } = useForm({
+  validationSchema: toTypedSchema(createErrandSchema),
+});
 
 const isSubmitting = ref(false);
 
-const onSubmit = handleSubmit((values) => {
-  toast({
-    title: "You submitted the following values:",
-    description: h(
-      "pre",
-      { class: "mt-2 w-[340px] rounded-md bg-slate-950 p-4" },
-      h("code", { class: "text-white" }, JSON.stringify(values, null, 2)),
-    ),
-  });
+const onSubmit = handleSubmit(async (values) => {
+  isSubmitting.value = true;
+  try {
+    const { data } = await useApiRequest<ApiResponse<Errand>>("/api/errands", {
+      body: values,
+      method: "post",
+    });
+    if (data) {
+      toast.success("Errand created successfully");
+      await navigateTo("/errands");
+    }
+  } catch (error: any) {
+    toast.error(error.data.message);
+  } finally {
+    isSubmitting.value = false;
+  }
 });
+const { data: categories, error } =
+  await useApiFetch<ApiResponse<ErrandCategory[]>>("/api/categories");
 </script>
 
 <template>
@@ -122,7 +119,7 @@ const onSubmit = handleSubmit((values) => {
           <FormField
             v-slot="{ componentField }"
             :validate-on-blur="!isFieldDirty"
-            name="priority"
+            name="categoryId"
           >
             <FormItem>
               <FormLabel>Category</FormLabel>
@@ -132,17 +129,13 @@ const onSubmit = handleSubmit((values) => {
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="general"> General </SelectItem>
-                    <SelectItem value="shopping"> Shopping </SelectItem>
-                    <SelectItem value="delivery"> Delivery </SelectItem>
-                    <SelectItem value="home-services">
-                      Home Services
+                    <SelectItem
+                      v-for="category in categories?.data"
+                      :key="category.id"
+                      :value="category.id"
+                    >
+                      {{ category.name }}
                     </SelectItem>
-                    <SelectItem value="administrative">
-                      Administrative
-                    </SelectItem>
-                    <SelectItem value="pet-care"> Pet Care </SelectItem>
-                    <SelectItem value="other"> Other </SelectItem>
                   </SelectContent>
                 </Select>
               </FormControl>
