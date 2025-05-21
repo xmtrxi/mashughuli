@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
-import * as z from "zod";
 
 import {
   Form,
@@ -12,9 +11,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { toast } from "vue-sonner";
 import { loginSchema } from "~/shared/schemas/auth.schema";
-import type { User } from "@prisma/client";
+
 useServerSeoMeta({
   title: "Sign In to Mashughuli | Access Your Account",
   ogTitle: "Sign In to Mashughuli | Access Your Account",
@@ -35,55 +33,17 @@ useServerSeoMeta({
 });
 
 // Router
-const router = useRouter();
+const authStore = useAuthStore();
 
 // Form handling
 const { handleSubmit, errors, isFieldDirty } = useForm({
   validationSchema: toTypedSchema(loginSchema),
 });
 
-// Submission state
-const isSubmitting = ref(false);
-
 // Submit handler
 const onSubmit = handleSubmit(async (values) => {
-  isSubmitting.value = true;
-  try {
-    const { data } = await useApiRequest<ApiResponse<User>>("/api/auth/login", {
-      method: "POST",
-      body: values,
-    });
-    if (data) {
-      toast.success("Login Success");
-      router.push("/dashboard");
-    }
-  } catch (error: any) {
-    // Show the most relevant error message to the user
-    toast.error(error.data?.message || "An unknown error occurred");
-
-    // Log all available error details
-    console.error("Auth error:", {
-      statusCode: error.statusCode,
-      statusMessage: error.statusMessage,
-      data: error.data,
-      message: error.message,
-      // Sometimes, the response body is in _data
-      responseData: error.response?._data,
-      fullError: error,
-    });
-  } finally {
-    isSubmitting.value = false;
-  }
+  await authStore.login(values);
 });
-
-// Navigation handlers
-const navigateToRegister = () => {
-  router.push("/register");
-};
-
-const navigateToLogin = () => {
-  router.push("/login");
-};
 </script>
 
 <template>
@@ -101,7 +61,11 @@ const navigateToLogin = () => {
       </div>
 
       <form @submit.prevent="onSubmit" class="space-y-4">
-        <FormField v-slot="{ componentField }" name="email">
+        <FormField
+          v-slot="{ componentField }"
+          name="email"
+          :validate-on-blur="!isFieldDirty"
+        >
           <FormItem>
             <FormLabel>Email</FormLabel>
             <FormControl>
@@ -115,7 +79,11 @@ const navigateToLogin = () => {
           </FormItem>
         </FormField>
 
-        <FormField v-slot="{ componentField }" name="password">
+        <FormField
+          v-slot="{ componentField }"
+          name="password"
+          :validate-on-blur="!isFieldDirty"
+        >
           <FormItem>
             <FormLabel>Password</FormLabel>
             <FormControl>
@@ -130,8 +98,8 @@ const navigateToLogin = () => {
           </FormItem>
         </FormField>
 
-        <Button type="submit" class="w-full" :disabled="isSubmitting">
-          {{ isSubmitting ? "Processing..." : "Sign In" }}
+        <Button type="submit" class="w-full" :disabled="authStore.loading">
+          {{ authStore.loading ? "Processing..." : "Sign In" }}
         </Button>
       </form>
 
