@@ -8,6 +8,8 @@ export default defineNuxtConfig({
     "@nuxt/image",
     "@nuxt/scripts",
     "shadcn-nuxt",
+    "@pinia/nuxt",
+    "pinia-plugin-persistedstate",
   ],
   devtools: { enabled: true },
   css: ["~/assets/css/tailwind.css"],
