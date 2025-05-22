@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 interface ApiError {
   statusCode: number;
   statusMessage?: string;
@@ -10,3 +12,12 @@ interface ApiResponse<T> {
   data: T;
   token?: string;
 }
+type ErrandWithRelationships = Prisma.ErrandGetPayload<{
+  include: {
+    category: true;
+    requester: true;
+    bids: true;
+    runner: true;
+    address: true;
+  };
+}>;

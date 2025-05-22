@@ -1,11 +1,8 @@
 <script lang="ts" setup>
-import type { Prisma } from "@prisma/client";
-
 import { buttonVariants } from "../ui/button";
-type ErrandWithCategory = Prisma.ErrandGetPayload<{
-  include: { category: true; requester: true; bids: true };
-}>;
-const props = defineProps<{ errand: ErrandWithCategory }>();
+import type { ErrandWithRelationships } from "~/types";
+
+const props = defineProps<{ errand: ErrandWithRelationships }>();
 
 const formatCurrency = (amount: number, currency: string): string => {
   return new Intl.NumberFormat("en-US", {
@@ -19,13 +16,13 @@ const formattedBudget = `${formatCurrency(parseFloat((props.errand.budgetMin ?? 
   "Kes",
 )}`;
 
-const priorityColors: Record<ErrandWithCategory["priority"], string> = {
+const priorityColors: Record<ErrandWithRelationships["priority"], string> = {
   low: "bg-green-100 text-green-800",
   medium: "bg-yellow-100 text-yellow-800",
   high: "bg-red-100 text-red-800",
 };
 
-const statusColors: Record<ErrandWithCategory["status"], string> = {
+const statusColors: Record<ErrandWithRelationships["status"], string> = {
   open: "bg-blue-100 text-blue-800",
   "in-progress": "bg-purple-100 text-purple-800",
   completed: "bg-green-100 text-green-800",

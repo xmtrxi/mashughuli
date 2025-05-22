@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Prisma } from "@prisma/client";
 import { buttonVariants } from "~/components/ui/button";
+import type { ApiResponse, ErrandWithRelationships } from "~/types";
 
 const searchQuery = ref("");
 const categoryFilter = ref("all");
@@ -32,7 +33,7 @@ type ErrandWithCategory = Prisma.ErrandGetPayload<{
   include: { category: true; requester: true };
 }>;
 const { data: errands, error } =
-  await useApiFetch<ApiResponse<ErrandWithCategory[]>>("/api/errands");
+  await useApiFetch<ApiResponse<ErrandWithRelationships[]>>("/api/errands");
 const filteredErrands = computed(() => {
   return errands.value?.data
     .filter((errand) => {
