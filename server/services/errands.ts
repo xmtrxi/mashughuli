@@ -15,6 +15,7 @@ export const errandService = () => {
             password: true,
           },
         },
+        category: true,
       },
     });
   };

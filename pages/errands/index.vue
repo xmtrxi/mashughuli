@@ -1,87 +1,6 @@
 <script setup lang="ts">
+import type { Prisma } from "@prisma/client";
 import { buttonVariants } from "~/components/ui/button";
-
-const errandsData = [
-  {
-    id: "1",
-    title: "Grocery Shopping & Delivery",
-    description:
-      "Need someone to pick up groceries from Whole Foods and deliver...",
-    location: "Downtown, Main Street",
-    budget: { min: 15, max: 25, currency: "USD" },
-    dueDate: "2025-05-05",
-    category: "Shopping",
-    priority: "medium",
-    status: "open",
-    bids: 3,
-  },
-  {
-    id: "2",
-    title: "Collect Package from Post Office",
-    description:
-      "Need someone to pick up a package from the local post office...",
-    location: "Westside, Oak Avenue",
-    budget: { min: 10, max: 20, currency: "USD" },
-    dueDate: "2025-05-03",
-    category: "Delivery",
-    priority: "high",
-    status: "open",
-    bids: 5,
-  },
-  {
-    id: "2",
-    title: "Collect Package from Post Office",
-    description:
-      "Need someone to pick up a package from the local post office...",
-    location: "Westside, Oak Avenue",
-    budget: { min: 10, max: 20, currency: "USD" },
-    dueDate: "2025-05-03",
-    category: "Delivery",
-    priority: "high",
-    status: "open",
-    bids: 5,
-  },
-  {
-    id: "2",
-    title: "Collect Package from Post Office",
-    description:
-      "Need someone to pick up a package from the local post office...",
-    location: "Westside, Oak Avenue",
-    budget: { min: 10, max: 20, currency: "USD" },
-    dueDate: "2025-05-03",
-    category: "Delivery",
-    priority: "high",
-    status: "open",
-    bids: 5,
-  },
-  {
-    id: "2",
-    title: "Collect Package from Post Office",
-    description:
-      "Need someone to pick up a package from the local post office...",
-    location: "Westside, Oak Avenue",
-    budget: { min: 10, max: 20, currency: "USD" },
-    dueDate: "2025-05-03",
-    category: "Delivery",
-    priority: "high",
-    status: "open",
-    bids: 5,
-  },
-  {
-    id: "2",
-    title: "Collect Package from Post Office",
-    description:
-      "Need someone to pick up a package from the local post office...",
-    location: "Westside, Oak Avenue",
-    budget: { min: 10, max: 20, currency: "USD" },
-    dueDate: "2025-05-03",
-    category: "Delivery",
-    priority: "high",
-    status: "open",
-    bids: 5,
-  },
-  // ... (rest of your errands)
-];
 
 const searchQuery = ref("");
 const categoryFilter = ref("all");
@@ -109,9 +28,13 @@ const sortOptions = [
   { value: "budget-low", label: "Budget (Low to High)" },
   { value: "most-bids", label: "Most Bids" },
 ];
-
+type ErrandWithCategory = Prisma.ErrandGetPayload<{
+  include: { category: true; requester: true };
+}>;
+const { data: errands, error } =
+  await useApiFetch<ApiResponse<ErrandWithCategory[]>>("/api/errands");
 const filteredErrands = computed(() => {
-  return errandsData
+  return errands.value?.data
     .filter((errand) => {
       const search = searchQuery.value.toLowerCase();
       const matchesSearch =
@@ -120,7 +43,8 @@ const filteredErrands = computed(() => {
 
       const matchesCategory =
         categoryFilter.value === "all" ||
-        errand.category.toLowerCase() === categoryFilter.value.toLowerCase();
+        errand.category.name.toLowerCase() ===
+          categoryFilter.value.toLowerCase();
 
       const matchesPriority =
         priorityFilter.value === "all" ||
@@ -131,15 +55,15 @@ const filteredErrands = computed(() => {
     .sort((a, b) => {
       switch (sortBy.value) {
         case "newest":
-          return new Date(b.dueDate) - new Date(a.dueDate);
+          return new Date(b.deadline) - new Date(a.deadline);
         case "oldest":
-          return new Date(a.dueDate) - new Date(b.dueDate);
-        case "budget-high":
-          return b.budget.max - a.budget.max;
-        case "budget-low":
-          return a.budget.min - b.budget.min;
-        case "most-bids":
-          return b.bids - a.bids;
+          return new Date(a.deadline) - new Date(b.deadline);
+        // case "budget-high":
+        //   return b.budget.max - a.budget.max;
+        // case "budget-low":
+        //   return a.budget.min - b.budget.min;
+        // case "most-bids":
+        //   return b.bids - a.bids;
         default:
           return 0;
       }

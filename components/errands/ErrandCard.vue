@@ -1,32 +1,11 @@
-<script setup lang="ts">
+<script lang="ts" setup>
+import type { Prisma } from "@prisma/client";
+
 import { buttonVariants } from "../ui/button";
-
-export interface Budget {
-  min: number;
-  max: number;
-  currency: string;
-}
-
-export interface ErrandProps {
-  id: string;
-  title: string;
-  description: string;
-  location: string;
-  budget: Budget;
-  dueDate: string;
-  category: string;
-  priority: "low" | "medium" | "high";
-  status: "open" | "in-progress" | "completed" | "cancelled";
-  bids: number;
-}
-
-const props = defineProps<{ errand: ErrandProps }>();
-
-const router = useRouter();
-
-const goToDetails = () => {
-  router.push(`/errands/${props.errand.id}`);
-};
+type ErrandWithCategory = Prisma.ErrandGetPayload<{
+  include: { category: true; requester: true; bids: true };
+}>;
+const props = defineProps<{ errand: ErrandWithCategory }>();
 
 const formatCurrency = (amount: number, currency: string): string => {
   return new Intl.NumberFormat("en-US", {
@@ -35,18 +14,18 @@ const formatCurrency = (amount: number, currency: string): string => {
   }).format(amount);
 };
 
-const formattedBudget = `${formatCurrency(props.errand.budget.min, props.errand.budget.currency)} - ${formatCurrency(
-  props.errand.budget.max,
-  props.errand.budget.currency,
+const formattedBudget = `${formatCurrency(parseFloat((props.errand.budgetMin ?? 0).toString()), "Kes")} - ${formatCurrency(
+  parseFloat((props.errand.budgetMax ?? 0).toString()),
+  "Kes",
 )}`;
 
-const priorityColors: Record<ErrandProps["priority"], string> = {
+const priorityColors: Record<ErrandWithCategory["priority"], string> = {
   low: "bg-green-100 text-green-800",
   medium: "bg-yellow-100 text-yellow-800",
   high: "bg-red-100 text-red-800",
 };
 
-const statusColors: Record<ErrandProps["status"], string> = {
+const statusColors: Record<ErrandWithCategory["status"], string> = {
   open: "bg-blue-100 text-blue-800",
   "in-progress": "bg-purple-100 text-purple-800",
   completed: "bg-green-100 text-green-800",
@@ -77,13 +56,13 @@ const capitalize = (val: string) => val.charAt(0).toUpperCase() + val.slice(1);
 
         <div class="flex items-center gap-2 text-sm">
           <Icon name="mdi:map-marker" class="h-4 w-4 text-muted-foreground" />
-          <span class="text-muted-foreground">{{ errand.location }}</span>
+          <span class="text-muted-foreground">{{ errand.customLocation }}</span>
         </div>
 
         <div class="flex items-center gap-2 text-sm">
           <Icon name="mdi:clock" class="h-4 w-4 text-muted-foreground" />
           <span class="text-muted-foreground">
-            Due {{ new Date(errand.dueDate).toLocaleDateString() }}
+            Due {{ new Date(errand.deadline ?? "").toLocaleDateString() }}
           </span>
         </div>
 
@@ -93,7 +72,7 @@ const capitalize = (val: string) => val.charAt(0).toUpperCase() + val.slice(1);
         </div>
 
         <div class="flex flex-wrap gap-2">
-          <Badge variant="outline">{{ errand.category }}</Badge>
+          <Badge variant="outline">{{ errand.category.name }}</Badge>
           <Badge :class="priorityClass">
             {{ capitalize(errand.priority) }} Priority
           </Badge>
