@@ -52,7 +52,7 @@ const emit = defineEmits<{
 const isSubmitting = ref(false);
 
 // Form validation
-const { handleSubmit, defineField, errors, resetForm } = useForm({
+const { handleSubmit, defineField, errors, resetForm, values } = useForm({
   validationSchema: toTypedSchema(formSchema),
   initialValues: {
     amount: props.maxBudget.toString(),
@@ -60,11 +60,6 @@ const { handleSubmit, defineField, errors, resetForm } = useForm({
     coverLetter: "",
   },
 });
-
-// Fields
-const [amount, amountProps] = defineField("amount");
-const [estimatedTime, estimatedTimeProps] = defineField("estimatedTime");
-const [coverLetter, coverLetterProps] = defineField("coverLetter");
 
 // Currency formatting
 const formatCurrency = (value: string | number) => {
@@ -81,7 +76,7 @@ const formatCurrency = (value: string | number) => {
 
 // Bid info calculation
 const bidInfo = computed(() => {
-  const current = parseFloat(amount.value || "0");
+  const current = parseFloat(values.amount || "0");
   const min = props.minBudget;
   const max = props.maxBudget;
 
@@ -144,66 +139,56 @@ const onSubmit = handleSubmit(async (values) => {
       {{ formatCurrency(maxBudget) }}
     </p>
 
-    <Form>
-      <form @submit.prevent="onSubmit" class="space-y-4">
-        <FormField>
-          <FormItem>
-            <FormLabel>Your Bid Amount ({{ currency }})</FormLabel>
-            <FormControl>
-              <Input
-                type="number"
-                :min="0"
-                step="0.01"
-                v-model="amount"
-                v-bind="amountProps"
-              />
-            </FormControl>
-            <p :class="['text-xs', bidInfo.color]">
-              {{ bidInfo.message }}
-            </p>
-            <FormMessage>{{ errors.amount }}</FormMessage>
-          </FormItem>
-        </FormField>
+    <form @submit.prevent="onSubmit" class="space-y-4">
+      <FormField v-slot="{ componentField }" name="amount">
+        <FormItem>
+          <FormLabel>Your Bid Amount ({{ currency }})</FormLabel>
+          <FormControl>
+            <Input type="number" :min="0" step="0.01" v-bind="componentField" />
+          </FormControl>
+          <p :class="['text-xs', bidInfo.color]">
+            {{ bidInfo.message }}
+          </p>
+          <FormMessage>{{ errors.amount }}</FormMessage>
+        </FormItem>
+      </FormField>
 
-        <FormField>
-          <FormItem>
-            <FormLabel>Estimated Completion Time</FormLabel>
-            <FormControl>
-              <Input
-                placeholder="e.g., 3 hours, 2 days"
-                v-model="estimatedTime"
-                v-bind="estimatedTimeProps"
-              />
-            </FormControl>
-            <FormDescription>
-              How long will it take you to complete this errand?
-            </FormDescription>
-            <FormMessage>{{ errors.estimatedTime }}</FormMessage>
-          </FormItem>
-        </FormField>
+      <FormField v-slot="{ componentField }" name="estimatedTime">
+        <FormItem>
+          <FormLabel>Estimated Completion Time</FormLabel>
+          <FormControl>
+            <Input
+              placeholder="e.g., 3 hours, 2 days"
+              v-bind="componentField"
+            />
+          </FormControl>
+          <FormDescription>
+            How long will it take you to complete this errand?
+          </FormDescription>
+          <FormMessage>{{ errors.estimatedTime }}</FormMessage>
+        </FormItem>
+      </FormField>
 
-        <FormField>
-          <FormItem>
-            <FormLabel>Why you're the best person for this errand</FormLabel>
-            <FormControl>
-              <Textarea
-                placeholder="Describe your experience, skills, and why you should be chosen..."
-                :rows="4"
-                v-model="coverLetter"
-                v-bind="coverLetterProps"
-              />
-            </FormControl>
-            <FormDescription>
-              Include relevant experience and any questions you have.
-            </FormDescription>
-            <FormMessage>{{ errors.coverLetter }}</FormMessage>
-          </FormItem>
-        </FormField>
+      <FormField v-slot="{ componentField }" name="coverLetter">
+        <FormItem>
+          <FormLabel>Why you're the best person for this errand</FormLabel>
+          <FormControl>
+            <Textarea
+              placeholder="Describe your experience, skills, and why you should be chosen..."
+              :rows="4"
+              v-bind="componentField"
+            />
+          </FormControl>
+          <FormDescription>
+            Include relevant experience and any questions you have.
+          </FormDescription>
+          <FormMessage>{{ errors.coverLetter }}</FormMessage>
+        </FormItem>
+      </FormField>
 
-        <Button type="submit" class="w-full" :disabled="isSubmitting">
-          {{ isSubmitting ? "Submitting..." : "Submit Bid" }}
-        </Button>
-      </form>
-    </Form>
+      <Button type="submit" class="w-full" :disabled="isSubmitting">
+        {{ isSubmitting ? "Submitting..." : "Submit Bid" }}
+      </Button>
+    </form>
   </div>
 </template>

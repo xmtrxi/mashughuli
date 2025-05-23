@@ -164,8 +164,8 @@ function resetFilters() {
 
       <!-- Results count -->
       <p class="text-sm text-muted-foreground">
-        Showing {{ filteredErrands.length }} errand<span
-          v-if="filteredErrands.length !== 1"
+        Showing {{ filteredErrands?.length }} errand<span
+          v-if="filteredErrands?.length !== 1"
           >s</span
         >
       </p>
@@ -185,7 +185,7 @@ function resetFilters() {
         <p class="text-muted-foreground">
           No errands found matching your criteria.
         </p>
-        <button class="btn-link" @click="resetFilters">Reset filters</button>
+        <Button class="btn-link" @click="resetFilters">Reset filters</Button>
       </div>
     </div>
   </div>

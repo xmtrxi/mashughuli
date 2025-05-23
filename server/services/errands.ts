@@ -44,6 +44,14 @@ export const errandService = () => {
         where: {
           id: id,
         },
+        include: {
+          requester: {
+            omit: {
+              password: true,
+            },
+          },
+          category: true,
+        },
       });
     } catch (e: any) {
       throw createError({

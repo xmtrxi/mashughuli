@@ -1,25 +1,12 @@
 <script setup lang="ts">
-// Example errand data
-const errand = {
-  id: "1",
-  title: "Grocery Shopping & Delivery",
-  description:
-    "I need someone to pick up groceries from Whole Foods Market on Main Street and deliver them to my apartment. I will provide a detailed shopping list including specific brands and alternatives if items are out of stock. Please handle fragile items with care and ensure cold items remain cold. Delivery should be made to the lobby of my apartment building where I will meet you.",
-  location: "Downtown, Main Street",
-  budget: { min: 15, max: 25, currency: "USD" },
-  dueDate: "2025-05-05",
-  category: "Shopping",
-  priority: "medium",
-  status: "open",
-  createdAt: "2025-05-01",
-  requester: {
-    id: "user1",
-    name: "John Doe",
-    avatar: null,
-    rating: 4.8,
-    completedErrands: 12,
-  },
-};
+import type { ApiResponse, ErrandWithRelationships } from "~/types";
+
+const route = useRoute();
+console.log(route.params.id);
+const { data } = await useApiFetch<ApiResponse<ErrandWithRelationships>>(
+  `/api/errands/${route.params.id}`,
+);
+const errand = ref(data.value?.data);
 
 // Example bids data
 const bidsData = [
@@ -92,10 +79,11 @@ const formatCurrency = (amount: number, currency: string) => {
   }).format(amount);
 };
 
-const formattedBudget = `${formatCurrency(errand.budget.min, errand.budget.currency)} - ${formatCurrency(errand.budget.max, errand.budget.currency)}`;
+const formattedBudget = `${formatCurrency(errand.value?.budgetMin ?? 0, "Kes")} - ${formatCurrency(errand.value?.budgetMax, "Kes")}`;
 </script>
 <template>
-  <div class="container mx-auto px-4 py-8">
+  <div v-if="!errand"></div>
+  <div v-else class="container mx-auto px-4 py-8">
     <div class="flex items-center mb-6">
       <NuxtLink
         to="/errands"
@@ -132,16 +120,17 @@ const formattedBudget = `${formatCurrency(errand.budget.min, errand.budget.curre
         <div class="flex items-center gap-1 text-muted-foreground">
           <Icon name="mdi:clock" class="h-4 w-4" />
           <span
-            >Due by {{ new Date(errand.dueDate).toLocaleDateString() }}</span
+            >Due by
+            {{ new Date(errand.deadline ?? "").toLocaleDateString() }}</span
           >
         </div>
         <div class="flex items-center gap-1 text-muted-foreground">
           <Icon name="mdi:map-marker" class="h-4 w-4" />
-          <span>{{ errand.location }}</span>
+          <span>{{ errand.customLocation }}</span>
         </div>
         <div class="flex items-center gap-1 text-muted-foreground">
           <Icon name="mdi:flag" class="h-4 w-4" />
-          <span>{{ errand.category }}</span>
+          <span>{{ errand.category.name }}</span>
         </div>
         <div class="flex items-center gap-1">
           <Icon name="mdi:dollar" class="h-4 w-4" />
@@ -178,16 +167,18 @@ const formattedBudget = `${formatCurrency(errand.budget.min, errand.budget.curre
                   <div class="flex items-center gap-3">
                     <Avatar>
                       <AvatarImage
-                        v-if="errand.requester.avatar"
-                        :src="errand.requester.avatar"
-                        :alt="errand.requester.name"
+                        v-if="errand.requester"
+                        :src="errand.requester.avatarUrl"
+                        :alt="errand.requester.fullName"
                       />
                       <AvatarFallback>{{
-                        errand.requester.name.charAt(0).toUpperCase()
+                        errand.requester.fullName.charAt(0)
                       }}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <div class="font-medium">{{ errand.requester.name }}</div>
+                      <div class="font-medium">
+                        {{ errand.requester.fullName }}
+                      </div>
                       <div
                         class="flex items-center text-sm text-muted-foreground"
                       >
@@ -196,18 +187,12 @@ const formattedBudget = `${formatCurrency(errand.budget.min, errand.budget.curre
                             v-for="i in 5"
                             :key="i"
                             name="mdi:star"
-                            :class="
-                              i < errand.requester.rating ? 'bg-yellow-500' : ''
-                            "
+                            :class="i < 4 ? 'bg-yellow-500' : ''"
                           />
-                          <span class="ml-1">{{
-                            errand.requester.rating
-                          }}</span>
+                          <span class="ml-1">{{ "4" }}</span>
                         </span>
                         <span class="mx-2">.</span>
-                        <span
-                          >{{ errand.requester.completedErrands }} Errands</span
-                        >
+                        <span>4 Errands</span>
                       </div>
                     </div>
                   </div>
@@ -232,6 +217,14 @@ const formattedBudget = `${formatCurrency(errand.budget.min, errand.budget.curre
             </Tabs>
           </CardHeader>
         </Card>
+      </div>
+      <div>
+        <ErrandsBiddingForm
+          :errand-id="errand.id"
+          :max-budget="100"
+          :min-budget="10"
+          currency="Kes"
+        />
       </div>
     </div>
   </div>
