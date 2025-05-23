@@ -2,7 +2,6 @@
 import type { ApiResponse, ErrandWithRelationships } from "~/types";
 
 const route = useRoute();
-console.log(route.params.id);
 const { data } = await useApiFetch<ApiResponse<ErrandWithRelationships>>(
   `/api/errands/${route.params.id}`,
 );
