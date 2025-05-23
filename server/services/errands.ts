@@ -1,10 +1,12 @@
-import { Errand, Prisma } from "@prisma/client";
 import prisma from "~/lib/prisma";
 import {
+  createBidSchema,
   createErrandSchema,
   updateErrandSchema,
 } from "~/shared/schemas/errands.schema";
 import { z } from "zod";
+import { useAuthUser } from "./auth/auth.service";
+import type { H3Event } from "h3";
 
 export const errandService = () => {
   const getErrands = async () => {
@@ -34,7 +36,7 @@ export const errandService = () => {
       console.log(e);
       throw createError({
         statusCode: 500,
-        statusMessage: "An error occurred!!",
+        message: "An error occurred!!",
       });
     }
   };
@@ -51,6 +53,11 @@ export const errandService = () => {
             },
           },
           category: true,
+          bids: {
+            include: {
+              runner: true,
+            },
+          },
         },
       });
     } catch (e: any) {
@@ -73,7 +80,7 @@ export const errandService = () => {
       if (!existing) {
         throw createError({
           statusCode: 404,
-          statusMessage: "Errand not found",
+          message: "Errand not found",
         });
       }
 
@@ -90,7 +97,7 @@ export const errandService = () => {
       console.log(e);
       throw createError({
         statusCode: 500,
-        statusMessage: "An error occurred!!",
+        message: "An error occurred!!",
       });
     }
   };
@@ -104,7 +111,30 @@ export const errandService = () => {
     } catch (e: any) {
       throw createError({
         statusCode: 500,
-        statusMessage: "An error occurred!",
+        message: "An error occurred!",
+      });
+    }
+  };
+
+  // One User Per Bid to avoid spamming
+  const createBid = async (
+    event: H3Event,
+    bid: z.infer<typeof createBidSchema>,
+  ) => {
+    try {
+      const user = await useAuthUser(event);
+      const completionTime = new Date(bid.estimatedCompletionTime);
+      return await prisma.bid.create({
+        data: {
+          ...bid,
+          runnerId: user.id,
+          estimatedCompletionTime: completionTime,
+        },
+      });
+    } catch (e: any) {
+      throw createError({
+        statusCode: e.statusCode ?? 500,
+        message: e.message ?? "An error occurred while bidding",
       });
     }
   };
@@ -115,5 +145,6 @@ export const errandService = () => {
     getErrandById,
     updateErrand,
     deleteErrand,
+    createBid,
   };
 };

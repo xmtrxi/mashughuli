@@ -37,3 +37,15 @@ export const updateErrandSchema = z.object({
   status: z.nativeEnum(ErrandStatus).optional(),
   visibility: z.boolean().optional(),
 });
+
+export const createBidSchema = z.object({
+  errandId: z.string().uuid(),
+  price: z.number(),
+  estimatedCompletionTime: z.string(),
+  experienceDetails: z
+    .string()
+    .min(20, "Please provide more details about your bid")
+    .max(500, "Keep you message unde 500 letters")
+    .optional(),
+  notes: z.string().optional(),
+});

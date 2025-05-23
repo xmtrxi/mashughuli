@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { useForm } from "vee-validate";
-import * as z from "zod";
 import { toTypedSchema } from "@vee-validate/zod";
 
 import {
-  Form,
   FormControl,
   FormDescription,
   FormField,
@@ -13,24 +11,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "vue-sonner";
-
-// Define the form schema
-const formSchema = z.object({
-  amount: z.string().refine(
-    (val) => {
-      const num = parseFloat(val);
-      return !isNaN(num) && num > 0;
-    },
-    { message: "Please enter a valid bid amount" },
-  ),
-  estimatedTime: z
-    .string()
-    .min(1, "Please provide an estimated completion time"),
-  coverLetter: z
-    .string()
-    .min(20, "Please provide more details about your bid")
-    .max(500, "Keep your message under 500 characters"),
-});
+import { createBidSchema } from "~/shared/schemas/errands.schema";
+import type { ApiResponse } from "~/types";
+import type { Bid } from "@prisma/client";
 
 // Define props with TypeScript
 interface BidFormProps {
@@ -42,6 +25,8 @@ interface BidFormProps {
 }
 
 const props = defineProps<BidFormProps>();
+const route = useRoute();
+const errandId = route.params.id;
 
 // Emits
 const emit = defineEmits<{
@@ -52,12 +37,14 @@ const emit = defineEmits<{
 const isSubmitting = ref(false);
 
 // Form validation
-const { handleSubmit, defineField, errors, resetForm, values } = useForm({
-  validationSchema: toTypedSchema(formSchema),
+const { handleSubmit, errors, resetForm, values } = useForm({
+  validationSchema: toTypedSchema(createBidSchema),
   initialValues: {
-    amount: props.maxBudget.toString(),
-    estimatedTime: "",
-    coverLetter: "",
+    price: props.maxBudget,
+    estimatedCompletionTime: "",
+    notes: "",
+    experienceDetails: "",
+    errandId: errandId as string,
   },
 });
 
@@ -76,7 +63,7 @@ const formatCurrency = (value: string | number) => {
 
 // Bid info calculation
 const bidInfo = computed(() => {
-  const current = parseFloat(values.amount || "0");
+  const current = parseFloat((values.price ?? 0).toString());
   const min = props.minBudget;
   const max = props.maxBudget;
 
@@ -98,32 +85,32 @@ const bidInfo = computed(() => {
   }
 });
 
-// Submit handler
 const onSubmit = handleSubmit(async (values) => {
+  values.errandId = errandId as string;
   isSubmitting.value = true;
   try {
-    const bidAmount = parseFloat(values.amount);
+    const { data, success } = await useApiRequest<ApiResponse<Bid>>(
+      "/api/errands/bids",
+      {
+        body: {
+          ...values,
+        },
+        method: "POST",
+      },
+    );
+    if (data) {
+      toast.success("Your bid has been submitted!");
+      resetForm();
 
-    // This would connect to your API
-    console.log("Bid submitted:", {
-      errandId: props.errandId,
-      ...values,
-      amount: bidAmount,
-    });
+      // Emit event or call callback
+      emit("bid-submitted");
+    }
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    toast.success("Your bid has been submitted!");
-    resetForm();
-
-    // Emit event or call callback
-    emit("bid-submitted");
     if (props.onBidSubmitted) {
       props.onBidSubmitted();
     }
-  } catch (error) {
-    console.error("Error submitting bid:", error);
+  } catch (error: any) {
+    console.error("Error submitting bid:", error.data);
     toast.error("Failed to submit your bid. Please try again.");
   } finally {
     isSubmitting.value = false;
@@ -140,7 +127,7 @@ const onSubmit = handleSubmit(async (values) => {
     </p>
 
     <form @submit.prevent="onSubmit" class="space-y-4">
-      <FormField v-slot="{ componentField }" name="amount">
+      <FormField v-slot="{ componentField }" name="price">
         <FormItem>
           <FormLabel>Your Bid Amount ({{ currency }})</FormLabel>
           <FormControl>
@@ -149,15 +136,16 @@ const onSubmit = handleSubmit(async (values) => {
           <p :class="['text-xs', bidInfo.color]">
             {{ bidInfo.message }}
           </p>
-          <FormMessage>{{ errors.amount }}</FormMessage>
+          <FormMessage>{{ errors.price }}</FormMessage>
         </FormItem>
       </FormField>
 
-      <FormField v-slot="{ componentField }" name="estimatedTime">
+      <FormField v-slot="{ componentField }" name="estimatedCompletionTime">
         <FormItem>
           <FormLabel>Estimated Completion Time</FormLabel>
           <FormControl>
             <Input
+              type="datetime-local"
               placeholder="e.g., 3 hours, 2 days"
               v-bind="componentField"
             />
@@ -165,11 +153,11 @@ const onSubmit = handleSubmit(async (values) => {
           <FormDescription>
             How long will it take you to complete this errand?
           </FormDescription>
-          <FormMessage>{{ errors.estimatedTime }}</FormMessage>
+          <FormMessage>{{ errors.estimatedCompletionTime }}</FormMessage>
         </FormItem>
       </FormField>
 
-      <FormField v-slot="{ componentField }" name="coverLetter">
+      <FormField v-slot="{ componentField }" name="experienceDetails">
         <FormItem>
           <FormLabel>Why you're the best person for this errand</FormLabel>
           <FormControl>
@@ -182,7 +170,22 @@ const onSubmit = handleSubmit(async (values) => {
           <FormDescription>
             Include relevant experience and any questions you have.
           </FormDescription>
-          <FormMessage>{{ errors.coverLetter }}</FormMessage>
+          <FormMessage>{{ errors.experienceDetails }}</FormMessage>
+        </FormItem>
+      </FormField>
+
+      <FormField v-slot="{ componentField }" name="notes">
+        <FormItem>
+          <FormLabel>Extra Notes</FormLabel>
+          <FormControl>
+            <Textarea
+              placeholder="Other notes to take on"
+              :rows="4"
+              v-bind="componentField"
+            />
+          </FormControl>
+          <FormDescription> Other important notes </FormDescription>
+          <FormMessage>{{ errors.notes }}</FormMessage>
         </FormItem>
       </FormField>
 
