@@ -8,58 +8,6 @@ const { data } = await useApiFetch<ApiResponse<ErrandWithRelationships>>(
 );
 const errand = ref(data.value?.data);
 
-// Example bids data
-const bidsData = [
-  {
-    id: "bid1",
-    userId: "runner1",
-    userName: "Alex Smith",
-    userAvatar: null,
-    errandId: "1",
-    amount: 20,
-    currency: "USD",
-    estimatedTime: "2 hours",
-    coverLetter:
-      "I can pick up your groceries and deliver them promptly. I have experience with careful handling of groceries and will make sure everything arrives in perfect condition.",
-    createdAt: "2025-05-01T10:30:00",
-    status: "pending",
-    userRating: 4.9,
-    completedErrands: 56,
-  },
-  {
-    id: "bid2",
-    userId: "runner2",
-    userName: "Maria Johnson",
-    userAvatar: null,
-    errandId: "1",
-    amount: 18,
-    currency: "USD",
-    estimatedTime: "1.5 hours",
-    coverLetter:
-      "I live near Whole Foods and can get this done quickly for you. I have my own insulated bags to keep cold items cold during transport.",
-    createdAt: "2025-05-01T11:15:00",
-    status: "pending",
-    userRating: 4.7,
-    completedErrands: 23,
-  },
-  {
-    id: "bid3",
-    userId: "runner3",
-    userName: "James Wilson",
-    userAvatar: null,
-    errandId: "1",
-    amount: 22,
-    currency: "USD",
-    estimatedTime: "2 hours",
-    coverLetter:
-      "Happy to help with your grocery shopping. I'm meticulous about following shopping lists and finding the exact items requested. I can text you while shopping if there are any questions.",
-    createdAt: "2025-05-01T14:20:00",
-    status: "pending",
-    userRating: 5.0,
-    completedErrands: 17,
-  },
-];
-
 const priorityColors = {
   low: "bg-green-100 text-green-800",
   medium: "bg-yellow-100 text-yellow-800",
@@ -150,7 +98,7 @@ const formattedBudget = `${formatCurrency(errand.value?.budgetMin ?? 0, "Kes")} 
                   <span
                     class="inline-flex items-center justify-center w-5 h-5 text-xs bg-muted rounded-full"
                   >
-                    {{ bidsData.length }}
+                    {{ errand.bids.length }}
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="messages">Messages</TabsTrigger>
@@ -208,7 +156,7 @@ const formattedBudget = `${formatCurrency(errand.value?.budgetMin ?? 0, "Kes")} 
               </TabsContent>
               <TabsContent value="bids" :class="`mt-4`">
                 <ErrandsBidderCard
-                  v-for="bid in bidsData"
+                  v-for="bid in errand.bids"
                   :key="bid.id"
                   :bid="bid"
                   :is-requester="false"

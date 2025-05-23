@@ -2,27 +2,13 @@
 import { computed } from "vue";
 
 import { StarIcon } from "lucide-vue-next";
+import type { Prisma } from "@prisma/client";
 
-// Define the interface for Bid props
-export interface BidProps {
-  id: string;
-  userId: string;
-  userName: string;
-  userAvatar?: string;
-  errandId: string;
-  amount: number;
-  currency: string;
-  estimatedTime: string;
-  coverLetter: string;
-  createdAt: string;
-  status: "pending" | "accepted" | "rejected";
-  userRating: number;
-  completedErrands: number;
-}
+type BidWithRunner = Prisma.BidGetPayload<{ include: { runner: true } }>;
 
 // Props definition
 const props = defineProps<{
-  bid: BidProps;
+  bid: BidWithRunner;
   isRequester?: boolean;
 }>();
 
@@ -74,12 +60,12 @@ const handleRejectBid = () => {
 };
 
 const handleContactBidder = () => {
-  router.push(`/messages/${props.bid.userId}`);
+  router.push(`/messages/${props.bid.runnerId}`);
 };
 
 // Computed for completed errands text
 const completedErrandsText = computed(() => {
-  return `${props.bid.completedErrands} errand${props.bid.completedErrands !== 1 ? "s" : ""} completed`;
+  return `1 completed`;
 });
 </script>
 
@@ -88,18 +74,18 @@ const completedErrandsText = computed(() => {
     <CardHeader class="flex flex-row items-start gap-4 pb-2">
       <Avatar class="h-12 w-12">
         <AvatarImage
-          v-if="bid.userAvatar"
-          :src="bid.userAvatar"
-          :alt="bid.userName"
+          v-if="bid.runner.avatarUrl"
+          :src="bid.runner.avatarUrl"
+          :alt="bid.runner.fullName"
         />
         <AvatarFallback v-else>
-          {{ bid.userName.charAt(0).toUpperCase() }}
+          {{ bid.runner.fullName.charAt(0).toUpperCase() }}
         </AvatarFallback>
       </Avatar>
 
       <div class="flex-1">
         <div class="flex items-center justify-between">
-          <CardTitle class="text-base">{{ bid.userName }}</CardTitle>
+          <CardTitle class="text-base">{{ bid.runner.fullName }}</CardTitle>
           <Badge :variant="bidStatusVariant">
             {{ bid.status.charAt(0).toUpperCase() + bid.status.slice(1) }}
           </Badge>
@@ -108,7 +94,7 @@ const completedErrandsText = computed(() => {
         <div class="flex items-center mt-1">
           <StarIcon class="h-4 w-4 text-yellow-500 mr-1" />
           <span class="text-sm font-medium mr-2">
-            {{ formatRating(bid.userRating) }}
+            {{ formatRating(1) }}
           </span>
           <span class="text-sm text-muted-foreground">
             {{ completedErrandsText }}
@@ -126,18 +112,26 @@ const completedErrandsText = computed(() => {
         <div>
           <p class="text-sm font-medium">Bid Amount</p>
           <p class="text-base">
-            {{ formatCurrency(bid.amount, bid.currency) }}
+            {{ formatCurrency(parseFloat(bid.price.toString()), "Kes") }}
           </p>
         </div>
         <div>
           <p class="text-sm font-medium">Estimated Time</p>
-          <p class="text-base">{{ bid.estimatedTime }}</p>
+          <p class="text-base">
+            {{
+              `${new Date(bid.estimatedCompletionTime ?? "").toDateString()} - ${new Date(bid.estimatedCompletionTime ?? "").toLocaleTimeString()}`
+            }}
+          </p>
         </div>
       </div>
 
       <div>
         <p class="text-sm font-medium mb-1">Message</p>
-        <p class="text-sm text-muted-foreground">{{ bid.coverLetter }}</p>
+        <p class="text-sm text-muted-foreground">{{ bid.experienceDetails }}</p>
+      </div>
+      <div>
+        <p class="text-sm font-medium mb-1">Notes</p>
+        <p class="text-sm text-muted-foreground">{{ bid.notes }}</p>
       </div>
     </CardContent>
 

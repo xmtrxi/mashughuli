@@ -16,7 +16,11 @@ type ErrandWithRelationships = Prisma.ErrandGetPayload<{
   include: {
     category: true;
     requester: true;
-    bids: true;
+    bids: {
+      include: {
+        runner: true;
+      };
+    };
     runner: true;
     address: true;
   };
