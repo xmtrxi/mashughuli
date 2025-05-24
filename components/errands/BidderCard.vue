@@ -3,6 +3,7 @@ import { computed } from "vue";
 
 import { StarIcon } from "lucide-vue-next";
 import type { Prisma } from "@prisma/client";
+import { buttonVariants } from "../ui/button";
 
 type BidWithRunner = Prisma.BidGetPayload<{ include: { runner: true } }>;
 
@@ -44,20 +45,6 @@ const bidStatusVariant = computed(() => {
       return "outline";
   }
 });
-
-// Event handlers
-const handleAcceptBid = () => {
-  console.log("Accepting bid:", props.bid.id);
-  emit("accept-bid", props.bid.id);
-  router.push(
-    `/dashboard/errands/${props.bid.errandId}/bids/${props.bid.id}/accept`,
-  );
-};
-
-const handleRejectBid = () => {
-  console.log("Rejecting bid:", props.bid.id);
-  emit("reject-bid", props.bid.id);
-};
 
 const handleContactBidder = () => {
   router.push(`/messages/${props.bid.runnerId}`);
@@ -137,23 +124,44 @@ const completedErrandsText = computed(() => {
 
     <CardFooter class="pt-2">
       <template v-if="isRequester && bid.status === 'pending'">
-        <div class="flex gap-2 w-full">
-          <Button
-            variant="default"
-            size="sm"
-            class="flex-1"
-            @click="handleAcceptBid"
+        <div class="flex gap-4">
+          <NuxtLink
+            :to="`/dashboard/errands/${bid.errandId}/bids/${bid.id}/accept`"
+            :class="
+              buttonVariants({
+                variant: 'default',
+                size: 'sm',
+                class: 'flex-1 flex items-center justify-center gap-2',
+              })
+            "
+            aria-label="Accept bid"
           >
             Accept
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            class="flex-1"
-            @click="handleRejectBid"
+            <span
+              class="transition-transform duration-300 group-hover:rotate-12 group-hover:scale-125"
+            >
+              <Icon name="mdi:emoji-happy" class="text-yellow-500 h-6 w-6" />
+            </span>
+          </NuxtLink>
+
+          <NuxtLink
+            :to="`/dashboard/errands/${bid.errandId}/bids/${bid.id}/reject`"
+            :class="
+              buttonVariants({
+                variant: 'outline',
+                size: 'sm',
+                class: 'flex-1 flex items-center justify-center gap-2 group',
+              })
+            "
+            aria-label="Reject bid"
           >
             Reject
-          </Button>
+            <span
+              class="transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-125"
+            >
+              <Icon name="mdi:emoji-sad" class="text-yellow-500 h-6 w-6" />
+            </span>
+          </NuxtLink>
         </div>
       </template>
       <template v-else>

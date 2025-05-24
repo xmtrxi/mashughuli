@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { buttonVariants } from "~/components/ui/button";
 import type { ApiResponse, ErrandWithRelationships } from "~/types";
 
 const route = useRoute();
@@ -25,6 +26,17 @@ const formatCurrency = (amount: number, currency: string) => {
     currency: currency,
   }).format(amount);
 };
+const authStore = useAuthStore();
+
+const isRequster = computed(() => {
+  if (!authStore.user) {
+    return false;
+  }
+  if (!errand.value) {
+    return false;
+  }
+  return authStore.user.id == errand.value.requester.id;
+});
 
 const formattedBudget = `${formatCurrency(errand.value?.budgetMin ?? 0, "Kes")} - ${formatCurrency(errand.value?.budgetMax, "Kes")}`;
 </script>
@@ -143,14 +155,16 @@ const formattedBudget = `${formatCurrency(errand.value?.budgetMin ?? 0, "Kes")} 
                       </div>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    class="mt-3 flex items-center gap-1"
-                  >
-                    <Icon name="mdi:message" />
-                    Message Requester
-                  </Button>
+                  <div class="flex justify-between">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      class="mt-3 flex items-center gap-1"
+                    >
+                      <Icon name="mdi:message" />
+                      Message Requester
+                    </Button>
+                  </div>
                 </div>
               </TabsContent>
               <TabsContent value="bids" :class="`mt-4`">
@@ -158,7 +172,7 @@ const formattedBudget = `${formatCurrency(errand.value?.budgetMin ?? 0, "Kes")} 
                   v-for="bid in errand.bids"
                   :key="bid.id"
                   :bid="bid"
-                  :is-requester="false"
+                  :is-requester="isRequster"
                 />
               </TabsContent>
             </Tabs>
