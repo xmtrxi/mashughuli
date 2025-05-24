@@ -16,6 +16,12 @@ export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
   vite: {
     plugins: [tailwindcss()],
+    resolve: {
+      alias: {
+        ".prisma/client/index-browser":
+          "./node_modules/@prisma/client/index-browser.js",
+      },
+    },
   },
   runtimeConfig: {
     supabaseUrl: process.env.SUPABASE_URL,
