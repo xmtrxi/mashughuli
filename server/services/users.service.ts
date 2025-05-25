@@ -1,11 +1,13 @@
+import { Prisma } from "@prisma/client";
 import prisma from "~/lib/prisma";
 
 export const userService = () => {
-  const getUsers = async () => {
+  const getUsers = async (args?: Prisma.UserFindManyArgs) => {
     return await prisma.user.findMany({
       omit: {
         password: true,
       },
+      ...args,
     });
   };
   const getUserById = async (id: string) => {

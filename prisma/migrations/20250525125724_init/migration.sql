@@ -36,13 +36,15 @@ CREATE TYPE "ResolutionType" AS ENUM ('refund', 'partial_refund', 'no_refund', '
 
 -- CreateTable
 CREATE TABLE "users" (
-    "id" UUID NOT NULL,
+    "id" UUID NOT NULL DEFAULT uuid_generate_v4(),
     "email" TEXT NOT NULL,
     "full_name" TEXT NOT NULL,
     "avatar_url" TEXT,
     "phone_number" TEXT,
     "primary_role" "UserRole" NOT NULL DEFAULT 'requester',
     "status" "UserStatus" NOT NULL DEFAULT 'active',
+    "bio" TEXT,
+    "categories" JSONB,
     "password" TEXT NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

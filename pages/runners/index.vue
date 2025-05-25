@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import type { User } from "@prisma/client";
 import { buttonVariants } from "~/components/ui/button";
+import type { ApiResponse } from "~/types";
+
+const { data } = await useApiFetch<ApiResponse<User[]>>("/api/users/runners");
+const users = ref(data.value?.data);
 
 const runners = [
   {
@@ -146,64 +151,64 @@ const runners = [
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
             <Card
-              v-for="runner in runners"
+              v-for="runner in users"
               :key="runner.id"
-              :class="!runner.available ? 'opacity-70' : ''"
+              :class="!runner.status ? 'opacity-70' : ''"
             >
               <CardHeader class="pb-3">
                 <div class="flex justify-between">
                   <div class="flex gap-4 items-center">
                     <NuxtImg
-                      :src="runner.image"
-                      :alt="runner.name"
+                      :src="runner.avatarUrl"
+                      :alt="runner.fullName"
                       class="w-12 h-12 rounded-full object-cover"
                     />
                     <div>
-                      <CardTitle class="text-lg">{{ runner.name }}</CardTitle>
+                      <CardTitle class="text-lg">{{
+                        runner.fullName
+                      }}</CardTitle>
                       <CardDescription class="flex items-center">
                         <Icon name="mdi:map-marker" class="h-3 w-3 mr-1" />
-                        {{ runner.location }}
+                        {{ runner.phoneNumber }}
                       </CardDescription>
                     </div>
                   </div>
                   <Badge class="py-0 rounded-2xl">
-                    {{ runner.available ? "Available" : "Busy" }}
+                    {{ runner.status ? "Available" : "Busy" }}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <p class="text-sm text-muted-foreground mb-4">
-                  {{ runner.bio }}
-                </p>
+                <p class="text-sm text-muted-foreground mb-4"></p>
                 <div class="flex gap-1 mb-3">
                   <Badge v-for="skill in runner.expertise" :key="skill">
                     {{ skill }}
                   </Badge>
                 </div>
-                <div class="flex justify-between text-sm">
-                  <span class="flex items-center">
-                    <Icon
-                      name="mdi:star"
-                      class="h-4 w-4 text-yellow-500 mr-1 fill-yellow-500"
-                    />
-                    <strong>{{ runner.rating }}</strong
-                    >/5.0
-                  </span>
-                  <span class="flex items-center">
-                    <Icon
-                      name="mdi:thumbs-up"
-                      class="h-4 w-4 text-primary-400 mr-1"
-                    />
-                    {{ runner.completedErrands }} errands
-                  </span>
-                </div>
+                <!-- <div class="flex justify-between text-sm"> -->
+                <!--   <span class="flex items-center"> -->
+                <!--     <Icon -->
+                <!--       name="mdi:star" -->
+                <!--       class="h-4 w-4 text-yellow-500 mr-1 fill-yellow-500" -->
+                <!--     /> -->
+                <!--     <strong>{{ runner.rating }}</strong -->
+                <!--     >/5.0 -->
+                <!--   </span> -->
+                <!--   <span class="flex items-center"> -->
+                <!--     <Icon -->
+                <!--       name="mdi:thumbs-up" -->
+                <!--       class="h-4 w-4 text-primary-400 mr-1" -->
+                <!--     /> -->
+                <!--     {{ runner.completedErrands }} errands -->
+                <!--   </span> -->
+                <!-- </div> -->
               </CardContent>
               <CardFooter>
                 <NuxtLink
                   :class="
                     buttonVariants({ variant: 'default', class: 'w-full' })
                   "
-                  :to="`/runners/${runner.id}`"
+                  :to="``"
                   >View Profile</NuxtLink
                 >
               </CardFooter>
