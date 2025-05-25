@@ -19,6 +19,9 @@ export const errandService = () => {
         },
         category: true,
       },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
   };
   const createErrands = async (
@@ -33,7 +36,6 @@ export const errandService = () => {
         },
       });
     } catch (e: any) {
-      console.log(e);
       throw createError({
         statusCode: 500,
         message: "An error occurred!!",

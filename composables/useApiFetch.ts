@@ -1,11 +1,12 @@
 export async function useApiFetch<T>(url: string, options: any = {}) {
-  const token = useCookie("auth_token");
+  const authStore = useAuthStore();
+  const token = authStore.token;
   const headers: Record<string, string> = {
     ...options.headers,
     "Content-Type": "application/json",
   };
-  if (token.value) {
-    headers["Authorization"] = `Bearer ${token.value}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   return await useFetch<T>(url, {

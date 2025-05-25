@@ -83,7 +83,7 @@ const capitalize = (val: string) => val.charAt(0).toUpperCase() + val.slice(1);
       </div>
       <NuxtLink
         :class="buttonVariants({ variant: 'default' })"
-        :to="`/errands/${errand.id}`"
+        :to="`errands/${errand.id}`"
         >View Details</NuxtLink
       >
     </CardFooter>
