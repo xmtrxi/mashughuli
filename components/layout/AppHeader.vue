@@ -28,11 +28,9 @@ const links = [
     name: "Contact",
     href: "/contact",
   },
-  {
-    name: "Dashboard",
-    href: "/dashboard",
-  },
 ];
+
+const authStore = useAuthStore();
 </script>
 
 <template>
@@ -64,6 +62,7 @@ const links = [
         <!-- Actions -->
         <div class="flex items-center space-x-4">
           <NuxtLink
+            v-if="!authStore.user && !authStore.token"
             to="/auth/login"
             :class="
               buttonVariants({
@@ -76,6 +75,7 @@ const links = [
             Sign In
           </NuxtLink>
           <NuxtLink
+            v-if="!authStore.user && !authStore.token"
             to="/auth/register"
             :class="
               buttonVariants({
@@ -86,6 +86,19 @@ const links = [
             "
           >
             Join Now
+          </NuxtLink>
+          <NuxtLink
+            v-if="authStore.user && authStore.token"
+            to="/dashboard"
+            :class="
+              buttonVariants({
+                variant: 'default',
+                class:
+                  'hidden md:block px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition',
+              })
+            "
+          >
+            Dashboard
           </NuxtLink>
 
           <!-- Mobile menu button -->
