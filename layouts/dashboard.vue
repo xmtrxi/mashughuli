@@ -10,6 +10,11 @@ const links = [
     icon: "mdi:home",
   },
   {
+    name: "Categories",
+    href: "/dashboard/categories",
+    icon: "mdi:category",
+  },
+  {
     name: "My Errands",
     href: "/dashboard/errands",
     icon: "arcticons:jobstreet",
