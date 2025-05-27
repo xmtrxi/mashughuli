@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/form";
 import { createErrandSchema } from "~/shared/schemas/errands.schema";
 import type { Errand, ErrandCategory } from "@prisma/client";
+import type { ApiResponse } from "~/types";
 
 const { handleSubmit, isFieldDirty } = useForm({
   validationSchema: toTypedSchema(createErrandSchema),
