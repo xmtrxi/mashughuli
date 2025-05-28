@@ -23,7 +23,11 @@ export default defineEventHandler(async (event) => {
   try {
     await useAuthUser(event);
     const { updateCategory } = categoryService();
-    return await updateCategory(id, data);
+    const category = await updateCategory(id, data);
+    return {
+      success: true,
+      data: category,
+    };
   } catch (e: any) {
     throw createError({
       statusCode: e.statusCode || 500,

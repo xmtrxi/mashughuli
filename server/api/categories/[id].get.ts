@@ -10,7 +10,11 @@ export default defineEventHandler(async (event) => {
   }
   try {
     const { getCategoryById } = categoryService();
-    return await getCategoryById(id);
+    const category = await getCategoryById(id);
+    return {
+      success: true,
+      data: category,
+    };
   } catch (e: any) {
     throw createError({
       statusCode: e.statusCode || 500,
