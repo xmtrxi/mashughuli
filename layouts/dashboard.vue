@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "~/components/ui/button";
-
 const isMobile = useIsMobile();
 const links = [
   {
@@ -91,6 +88,9 @@ const settingsLinks = [
           </div>
         </header>
       </template>
+      <div>
+        <LayoutAppDashboardHeader />
+      </div>
 
       <main class="p-4 md:p-6">
         <slot />

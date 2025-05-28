@@ -1,5 +1,6 @@
 import type { User } from "@prisma/client";
 import { toast } from "vue-sonner";
+import type { ApiResponse } from "~/types";
 
 export const useAuthStore = defineStore(
   "auth",
@@ -32,12 +33,19 @@ export const useAuthStore = defineStore(
       }
     };
 
+    const logout = async () => {
+      user.value = null;
+      token.value = null;
+      await navigateTo("/");
+    };
+
     return {
       user,
       token,
       loading,
 
       login,
+      logout,
     };
   },
   {
