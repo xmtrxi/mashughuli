@@ -65,8 +65,8 @@ const contactInfo = reactive<ContactInfo[]>([
   {
     icon: "mdi:phone",
     title: "Phone",
-    details: "+254 702 345 678",
-    action: "tel:+254702345678",
+    details: "+254 718 190 691",
+    action: "tel:+254718190691",
   },
   {
     icon: "mdi:map-marker",

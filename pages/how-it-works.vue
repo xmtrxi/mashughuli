@@ -205,7 +205,12 @@ const faqs = [
         </div>
 
         <div class="mt-16 text-center">
-          <Button> Post Your First Errand </Button>
+          <NuxtLink
+            :to="`/errands/new`"
+            :class="buttonVariants({ variant: 'default' })"
+          >
+            Post Your First Errand
+          </NuxtLink>
         </div>
       </div>
     </section>
@@ -288,7 +293,7 @@ const faqs = [
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <NuxtLink
-            to="/register"
+            to="/auth/register"
             :class="buttonVariants({ variant: 'default' })"
           >
             Sign Up Now
@@ -304,48 +309,4 @@ const faqs = [
     </section>
   </div>
 </template>
-<style scoped>
-/* Additional custom styles can be added here */
-.bg-primary-50 {
-  background-color: #f0f7ff;
-}
-
-.text-primary-700 {
-  color: #1e58b0;
-}
-
-.text-primary-800 {
-  color: #12468a;
-}
-
-.bg-primary-600 {
-  background-color: #2563eb;
-}
-
-.bg-primary-700 {
-  background-color: #1d4ed8;
-}
-
-.text-primary-600 {
-  color: #2563eb;
-}
-
-.border-primary-100 {
-  border-color: #e0eaff;
-}
-
-.bg-primary-100 {
-  background-color: #e0eaff;
-}
-/* Additional styles to enhance accessibility and dark mode support */
-@media (prefers-reduced-motion: reduce) {
-  .card-hover {
-    @apply hover:transform-none;
-  }
-}
-
-/* Dark mode specific adjustments */
-:deep(.dark) .bg-primary\/10 {
-  background-color: rgba(var(--primary), 0.15);
-}
-</style>
+<style scoped></style>
