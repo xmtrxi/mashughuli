@@ -1,3 +1,6 @@
+-- CreateExtension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "public";
+
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('requester', 'runner', 'admin');
 

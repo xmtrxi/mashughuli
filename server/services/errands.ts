@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 import { useAuthUser } from "./auth/auth.service";
 import type { H3Event } from "h3";
+import { ErrandStatus } from "@prisma/client";
 
 export const errandService = () => {
   const getErrands = async () => {
@@ -126,13 +127,19 @@ export const errandService = () => {
     try {
       const user = await useAuthUser(event);
       const completionTime = new Date(bid.estimatedCompletionTime);
-      return await prisma.bid.create({
-        data: {
-          ...bid,
-          runnerId: user.id,
-          estimatedCompletionTime: completionTime,
-        },
-      });
+      return await prisma.$transaction([
+        prisma.bid.create({
+          data: {
+            ...bid,
+            runnerId: user.id,
+            estimatedCompletionTime: completionTime,
+          },
+        }),
+        prisma.errand.update({
+          where: { id: bid.errandId },
+          data: { status: ErrandStatus.in_progress },
+        }),
+      ]);
     } catch (e: any) {
       throw createError({
         statusCode: e.statusCode ?? 500,
