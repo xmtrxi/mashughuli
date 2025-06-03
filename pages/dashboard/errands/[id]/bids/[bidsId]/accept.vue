@@ -2,6 +2,11 @@
 import { buttonVariants } from "~/components/ui/button";
 import type { ApiResponse, BidsWithRelationships } from "~/types";
 
+interface MpesaPayment {
+  merchantRequestId: string;
+  checkoutRequestId: string;
+}
+
 const route = useRoute();
 const bidsId = route.params.bidsId;
 
@@ -17,8 +22,19 @@ const form = ref({
 
 const submitPayment = async () => {
   try {
-    const {} = await useApiRequest("/api/payment/stk", form.value);
+    const { data } = await useApiRequest<ApiResponse<MpesaPayment>>(
+      "/api/payments/stk",
+      form.value,
+    );
+    if (data) {
+    }
   } catch (e: any) {}
+};
+
+const connectToWs = (data: MpesaPayment) => {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl = `${protocol}//${window.location.host}/_ws`;
+  const {} = useWebSocket();
 };
 </script>
 <template>

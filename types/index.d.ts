@@ -31,3 +31,21 @@ type BidsWithRelationships = Prisma.BidGetPayload<{
     errand: true;
   };
 }>;
+export type StkCallback = {
+  MerchantRequestID: string;
+  CheckoutRequestID: string;
+  ResultCode: number;
+  ResultDesc: string;
+  CallbackMetadata: {
+    Item: Array<{
+      Name: string;
+      Value: string | number;
+    }>;
+  };
+};
+
+export type StkCallbackHook = {
+  Body: {
+    stkCallback: StkCallback;
+  };
+};

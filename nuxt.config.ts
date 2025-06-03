@@ -10,6 +10,7 @@ export default defineNuxtConfig({
     "shadcn-nuxt",
     "@pinia/nuxt",
     "pinia-plugin-persistedstate",
+    "@vueuse/nuxt",
   ],
   devtools: { enabled: true },
   css: ["~/assets/css/tailwind.css"],
