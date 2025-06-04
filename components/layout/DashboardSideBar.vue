@@ -10,6 +10,8 @@ const props = defineProps<{
   links: Link[];
   settingsLinks: Link[];
 }>();
+const authStore = useAuthStore();
+
 </script>
 <template>
   <div class="py-6 space-y-6">
@@ -17,10 +19,10 @@ const props = defineProps<{
       <div
         class="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center"
       >
-        <span class="text-2xl font-medium text-primary-400">JD</span>
+        <span class="text-2xl font-medium text-primary-400">{{ authStore.user.fullName.charAt(0).toUpperCase()}}</span>
       </div>
       <div>
-        <h3 class="font-medium">John Doe</h3>
+        <h3 class="font-medium">{{authStore.user.fullName}}</h3>
         <p class="text-sm text-muted-foreground capitalize">Runners</p>
       </div>
     </div>
