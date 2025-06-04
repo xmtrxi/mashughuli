@@ -12,33 +12,33 @@ const app = new Mpesa(
 );
 
 const callStk = async (
-  phoneNumber: number,
+  phoneNumber: string,
   amount: number,
   description: string,
   accountNumber: string,
 ) => {
-  const response = await app
-    .stkPush()
-    .amount(amount)
-    .phoneNumber(phoneNumber)
-    .description(description)
-    .shortCode(process.env.MPESA_BUSINESS_SHORTCODE!)
-    .accountNumber(accountNumber)
-    .callbackURL(process.env.MPESA_STK_CALLBACK_URL!)
-    .lipaNaMpesaPassKey(process.env.MPESA_LNM_PASSKEY!)
-    .send()
-    .catch((err) => {
-      console.error(err);
-      return null;
-    });
+  try {
+    const phone = +`254${phoneNumber.slice(-9)}`;
+    // Build the request step by step with logging
+    const stkBuilder = app
+      .stkPush()
+      .amount(amount)
+      .phoneNumber(phone)
+      .description(description)
+      .shortCode(process.env.MPESA_BUSINESS_SHORTCODE!)
+      .accountNumber(accountNumber)
+      .callbackURL(process.env.MPESA_STK_CALLBACK_URL!)
+      .lipaNaMpesaPassKey(process.env.MPESA_LNM_PASSKEY!);
 
-  if (!response || !response.isOkay()) {
-    console.error(response);
+    const response = await stkBuilder.send();
+
+    return response.data;
+  } catch (err: any) {
+    console.log("=== STK PUSH ERROR ===", err);
+
     return null;
   }
-  return response.data;
 };
-
 export const callB2C = async (data: {
   phone_number: string;
   reason: string;
@@ -143,7 +143,7 @@ export const callB2B = async (data: {
 };
 
 export const processFormPayments = async (details: {
-  phoneNumber: number;
+  phoneNumber: string;
   amount: number;
   accountNumber: string;
   description: string;
@@ -154,9 +154,5 @@ export const processFormPayments = async (details: {
     details.description,
     details.accountNumber,
   );
-
-  return {
-    merchantRequestId: result.MerchantRequestId,
-    checkoutRequestId: result.CheckoutRequestId,
-  };
+  return result;
 };

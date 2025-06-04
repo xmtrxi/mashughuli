@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { toast } from "vue-sonner";
 import { buttonVariants } from "~/components/ui/button";
+import { useConditionalPaymentWs } from "~/composables/ws/useConditionalPaymentWs";
+import { usePaymentWs } from "~/composables/ws/usePaymentWs";
 import type { ApiResponse, BidsWithRelationships } from "~/types";
 
 interface MpesaPayment {
   merchantRequestId: string;
   checkoutRequestId: string;
+  message: string;
 }
 
 const route = useRoute();
@@ -15,27 +19,56 @@ const { data } = await useApiFetch<ApiResponse<BidsWithRelationships>>(
 );
 const bid = ref(data.value?.data);
 const form = ref({
-  phoneNumber: "",
-  errandsId: bid.value?.errandId,
+  phone: "",
+  errandId: bid.value?.errandId,
   amount: bid.value?.price ?? "",
 });
 
+const currentPayment = ref<MpesaPayment | null>(null);
+const isPaymentInitiated = ref(false);
+
+const {
+  paymentStatus,
+  paymentMessage,
+  paymentData,
+  isSubscribed,
+  isActive,
+  initializeConnection,
+  cleanup,
+} = useConditionalPaymentWs();
 const submitPayment = async () => {
+  isPaymentInitiated.value = true;
   try {
     const { data } = await useApiRequest<ApiResponse<MpesaPayment>>(
       "/api/payments/stk",
-      form.value,
+      {
+        method: "POST",
+        body: form.value,
+      },
     );
     if (data) {
+      currentPayment.value = data;
+      toast.success(data.message);
+      initializeConnection(data.checkoutRequestId, data.merchantRequestId);
     }
-  } catch (e: any) {}
+  } catch (e: any) {
+  } finally {
+    isPaymentInitiated.value = false;
+  }
 };
-
-const connectToWs = (data: MpesaPayment) => {
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = `${protocol}//${window.location.host}/_ws`;
-  const {} = useWebSocket();
-};
+watch(paymentStatus, (status) => {
+  console.log("Payment status changed:", status);
+  if (status === "success") {
+    console.log("Payment successful!");
+    // Redirect or update UI
+  } else if (status === "failed") {
+    console.log("Payment failed:", paymentMessage.value);
+    // Show error message
+  }
+});
+onUnmounted(() => {
+  cleanup();
+});
 </script>
 <template>
   <div class="container mx-auto px-4 py-8">
@@ -182,7 +215,7 @@ const connectToWs = (data: MpesaPayment) => {
                         </div>
                         <div>
                           <Label>Phone Number</Label>
-                          <Input v-model="form.phoneNumber" class="" />
+                          <Input v-model="form.phone" class="" />
                         </div>
                         <div>
                           <Button @click.prevent="submitPayment">Submit</Button>
