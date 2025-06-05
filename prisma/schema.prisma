@@ -280,13 +280,14 @@ model Bid {
 }
 
 model Message {
-  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  errandId    String   @map("errand_id") @db.Uuid
-  senderId    String   @map("sender_id") @db.Uuid
-  recipientId String   @map("recipient_id") @db.Uuid
+  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  errandId    String        @map("errand_id") @db.Uuid
+  senderId    String        @map("sender_id") @db.Uuid
+  recipientId String        @map("recipient_id") @db.Uuid
   message     String
-  read        Boolean  @default(false)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  read        Boolean       @default(false)
+  status      MessageStatus @default(sent)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
 
   // Relations
   errand    Errand @relation(fields: [errandId], references: [id], onDelete: Cascade)
@@ -296,6 +297,13 @@ model Message {
   @@index([errandId])
   @@index([senderId, recipientId])
   @@map("messages")
+}
+
+enum MessageStatus {
+  sending
+  sent
+  delivered
+  read
 }
 
 model Review {
