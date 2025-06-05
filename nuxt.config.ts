@@ -98,6 +98,11 @@ export default defineNuxtConfig({
         },
       },
     },
+    storage: {
+      cache: {
+        driver: "redis",
+      },
+    },
   },
   imports: {
     dirs: ["./server/services", "./server/utils"],
