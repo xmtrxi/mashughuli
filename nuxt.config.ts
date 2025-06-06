@@ -28,6 +28,7 @@ export default defineNuxtConfig({
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
     jwtSecret: process.env.NUXT_JWT_SECRET,
+    redisUrl: process.env.NUXT_REDIS_URL,
   },
   icon: {
     mode: "css",
