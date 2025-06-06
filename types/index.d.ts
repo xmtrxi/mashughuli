@@ -12,6 +12,15 @@ interface ApiResponse<T> {
   data: T;
   token?: string;
 }
+
+interface Profile {
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  bio: string;
+  avatarUrl: string;
+}
+
 type ErrandWithRelationships = Prisma.ErrandGetPayload<{
   include: {
     category: true;

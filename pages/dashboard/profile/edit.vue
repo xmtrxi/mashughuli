@@ -1,123 +1,57 @@
 <script setup lang="ts">
-import { buttonVariants } from "~/components/ui/button";
+import { ref } from 'vue';
+import { z } from 'zod';
+import type {ApiResponse, Profile} from "~/types";
+import { profileSchema } from "~/shared/schemas/profileData.schema";
 
-const authStore = useAuthStore();
-
-// Form data
-const profileData = ref({
-  name: authStore?.user?.fullName || "",
-  phone: authStore?.user?.phoneNumber || "",
-  email: authStore?.user?.email || "",
-  // dob: authStore?.user?.dateOfBirth ? new Date(authStore.user.dateOfBirth).toISOString().split('T')[0] : ""
-});
-
-// Form validation errors
-const errors = ref({
-  name: "",
-  phone: "",
-  email: "",
-  dob: ""
-});
 
 // Loading state
 const isLoading = ref(false);
 
-// Load existing profile data
-onMounted(async () => {
-  // If user data is not already loaded in the store, fetch it
-  if (!authStore.user) {
-    try {
-      const { data } = await $fetch('/api/users/:id', {
-        method: 'GET'
-      }).catch((error) => {
-        console.error('Error loading profile:', error);
-        return null;
-      });
-      if (data) {
-        authStore.setUser(data);
-        // Update form with fresh data
-        profileData.value = {
-          name: data.name || "",
-          phone: data.phone || "",
-          email: data.email || "",
-          dob: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0] : ""
-        };
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    }
-  }
+const profileData = ref({
+  fullName: "",
+  phoneNumber: "",
+  email: "",
+  bio: "",
+  avatarUrl: ""
 });
 
-// Validate form fields
-function validateForm() {
-  errors.value = {
-    name: "",
-    phone: "",
-    email: "",
-    dob: ""
-  };
-
-  let isValid = true;
-
-  // Name validation
-  if (!profileData.value.name.trim()) {
-    errors.value.name = "Name is required";
-    isValid = false;
-  }
-
-  // Email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!profileData.value.email.trim()) {
-    errors.value.email = "Email is required";
-    isValid = false;
-  } else if (!emailRegex.test(profileData.value.email)) {
-    errors.value.email = "Please enter a valid email address";
-    isValid = false;
-  }
-
-  // Phone validation
-  if (!profileData.value.phone.trim()) {
-    errors.value.phone = "Phone number is required";
-    isValid = false;
-  }
-
-  // Date of birth validation
-  if (!profileData.value.dob) {
-    errors.value.dob = "Date of birth is required";
-    isValid = false;
-  }
-
-  return isValid;
-}
-
-// Handle form submission
-async function handleSubmit() {
-  if (!validateForm()) {
-    return;
-  }
-
-  isLoading.value = true;
-
+const fetchProfile = async () => {
   try {
-    // Update profile via API
-    const { data } = await $fetch('/api/profile', {
-      method: 'PUT',
-      body: {
-        name: profileData.value.name,
-        phone: profileData.value.phone,
-        email: profileData.value.email,
-        dateOfBirth: new Date(profileData.value.dob).toISOString()
-      }
+    // Use type assertion for the data property
+    const { data } = await useFetch<Profile>('/api/users/profile', {
+      method: 'GET',
     });
 
-    // Update the auth store with new data
-    if (data) {
-      authStore.updateUser(data);
+    if (data.value) {
+      profileData.value = {
+        fullName: data.value.fullName,
+        phoneNumber: data.value.phoneNumber,
+        email: data.value.email,
+        bio: data.value.bio,
+        avatarUrl: data.value.avatarUrl,
+      };
     }
+  } catch (e: any) {
+    console.error('Error loading profile:', e);
+  }
+};
+fetchProfile()
 
-    // Show success message
-    console.log('Profile updated successfully');
+// Handle form submission - sending JSON, not FormData
+async function handleSubmit() {
+    isLoading.value = true;
+  try {
+    const { data  } = await useApiRequest('/api/users/update', {
+      method: 'PUT',
+      body: {
+        fullName: profileData.value.fullName,
+        phoneNumber: profileData.value.phoneNumber,
+        email: profileData.value.email,
+        bio: profileData.value.bio,
+        avatarUrl: profileData.value.avatarUrl
+      }
+    });
 
   } catch (error) {
     console.error('Error updating profile:', error);
@@ -126,19 +60,22 @@ async function handleSubmit() {
   }
 }
 
-// Reset form
+// Reset form to initial state
 function resetForm() {
   profileData.value = {
-    name: "",
-    phone: "",
+    fullName: "",
+    phoneNumber: "",
     email: "",
-    dob: ""
+    bio: "",
+    avatarUrl: ""
   };
+
   errors.value = {
-    name: "",
-    phone: "",
+    fullName: "",
+    phoneNumber: "",
     email: "",
-    dob: ""
+    bio: "",
+    avatarUrl: ""
   };
 }
 </script>
@@ -155,20 +92,20 @@ function resetForm() {
 
       <div class="bg-card rounded-lg border p-6">
         <form @submit.prevent="handleSubmit" class="space-y-6">
-          <!-- Name Field -->
+          <!-- Full Name Field -->
           <div class="space-y-2">
-            <label for="name" class="text-sm font-medium">
+            <label for="fullName" class="text-sm font-medium">
               Full Name <span class="text-destructive">*</span>
             </label>
             <Input
-                id="name"
-                v-model="profileData.name"
+                id="fullName"
+                v-model="profileData.fullName"
                 type="text"
                 placeholder="Enter your full name"
-                :class="{ 'border-destructive': errors.name }"
+                :class="{ 'border-destructive': errors.fullName }"
             />
-            <p v-if="errors.name" class="text-sm text-destructive">
-              {{ errors.name }}
+            <p v-if="errors.fullName" class="text-sm text-destructive">
+              {{ errors.fullName }}
             </p>
           </div>
 
@@ -196,10 +133,10 @@ function resetForm() {
             </p>
           </div>
 
-          <!-- Phone Field -->
+          <!-- Phone Number Field -->
           <div class="space-y-2">
-            <label for="phone" class="text-sm font-medium">
-              Phone Number <span class="text-destructive">*</span>
+            <label for="phoneNumber" class="text-sm font-medium">
+              Phone Number
             </label>
             <div class="relative">
               <Icon
@@ -207,39 +144,63 @@ function resetForm() {
                   class="absolute left-3 top-3 h-4 w-4 text-muted-foreground"
               />
               <Input
-                  id="phone"
-                  v-model="profileData.phone"
+                  id="phoneNumber"
+                  v-model="profileData.phoneNumber"
                   type="tel"
                   placeholder="Enter your phone number"
                   class="pl-10"
-                  :class="{ 'border-destructive': errors.phone }"
+                  :class="{ 'border-destructive': errors.phoneNumber }"
               />
             </div>
-            <p v-if="errors.phone" class="text-sm text-destructive">
-              {{ errors.phone }}
+            <p v-if="errors.phoneNumber" class="text-sm text-destructive">
+              {{ errors.phoneNumber }}
             </p>
           </div>
 
-          <!-- Date of Birth Field -->
+          <!-- Bio Field -->
           <div class="space-y-2">
-            <label for="dob" class="text-sm font-medium">
-              Date of Birth <span class="text-destructive">*</span>
+            <label for="bio" class="text-sm font-medium">
+              Bio
             </label>
             <div class="relative">
               <Icon
-                  name="mdi:calendar"
+                  name="mdi:text"
+                  class="absolute left-3 top-3 h-4 w-4 text-muted-foreground"
+              />
+              <textarea
+                  id="bio"
+                  v-model="profileData.bio"
+                  placeholder="Tell us about yourself"
+                  class="pl-10 min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  :class="{ 'border-destructive': errors.bio }"
+              />
+            </div>
+            <p v-if="errors.bio" class="text-sm text-destructive">
+              {{ errors.bio }}
+            </p>
+          </div>
+
+          <!-- Avatar URL Field -->
+          <div class="space-y-2">
+            <label for="avatarUrl" class="text-sm font-medium">
+              Avatar URL
+            </label>
+            <div class="relative">
+              <Icon
+                  name="mdi:image"
                   class="absolute left-3 top-3 h-4 w-4 text-muted-foreground"
               />
               <Input
-                  id="dob"
-                  v-model="profileData.dob"
-                  type="date"
+                  id="avatarUrl"
+                  v-model="profileData.avatarUrl"
+                  type="url"
+                  placeholder="Enter avatar image URL"
                   class="pl-10"
-                  :class="{ 'border-destructive': errors.dob }"
+                  :class="{ 'border-destructive': errors.avatarUrl }"
               />
             </div>
-            <p v-if="errors.dob" class="text-sm text-destructive">
-              {{ errors.dob }}
+            <p v-if="errors.avatarUrl" class="text-sm text-destructive">
+              {{ errors.avatarUrl }}
             </p>
           </div>
 

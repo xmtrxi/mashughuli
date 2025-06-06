@@ -17,8 +17,8 @@ const authUser = useAuthStore();
         <div class="flex-col space-y-3">
           <h3 class="text-xl font-bold text-gray-900"> Name :John Doe</h3>
           <p class="text-gray-600 text-lg" >Email:johndoe@example.com</p>
-          <p class="text-gray-500 text-lg">Member since Jan 2023</p>
-          <p class="text-gray-500 text-lg">Email: johndoe@example.com</p>
+          <p class="text-gray-600 text-lg">Member since Jan 2023</p>
+          <p class="text-gray-600 text-lg">Email: johndoe@example.com</p>
           <p class="text-gray-500 text-lg">Dob: 01/01/2000</p>
 
 
@@ -27,7 +27,7 @@ const authUser = useAuthStore();
 
       <div class="mt-6 flex space-x-4">
         <NuxtLink
-            to="/profile/edit"
+            to="profile/edit"
             :class="buttonVariants({ variant: 'default' })"
         >
           <Icon name="mdi:edit" />

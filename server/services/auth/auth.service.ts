@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import prisma from "~/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 import type { H3Event } from "h3";
-import { z } from "zod";
+import {objectInputType, objectOutputType, Writeable, z, ZodTypeAny} from "zod";
 import { userSchema } from "~/shared/schemas/auth.schema";
 
 const runtime = useRuntimeConfig();
@@ -72,6 +72,30 @@ export const loginUser = async (
       status: user.status,
     },
   };
+};
+
+export const updateUser = async (userId: string, user: objectOutputType<{
+  email: z.string;
+  fullName: ZodString;
+  avatarUrl: ZodOptional<ZodString>;
+  phoneNumber: ZodString;
+  primaryRole: ZodEnum<Writeable<[string, string]>>;
+  password: ZodString;
+  bio: ZodString;
+  categories: ZodObject<{}, "strip", ZodTypeAny, objectOutputType<{}, ZodTypeAny, "strip">, objectInputType<{}, ZodTypeAny, "strip">>
+}, ZodType<any, any, any>, "strip"> | undefined) => {
+  try {
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        ...user,
+      },
+    });
+  } catch (e) {
+    console.log(e);
+  }
 };
 
 export const registerUser = async (formData: z.infer<typeof userSchema>) => {
