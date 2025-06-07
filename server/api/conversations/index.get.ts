@@ -4,185 +4,101 @@ import { useAuthUser } from "~/server/services/auth/auth.service";
 export default defineEventHandler(async (event) => {
   try {
     const user = await useAuthUser(event);
+    const userId = user.id;
 
-    // Get conversations based on:
-    // 1. Errands where user is requester and there are bids
-    // 2. Errands where user has placed bids
-    // 3. Existing message threads
-
-    const [requesterConversations, bidderConversations] = await Promise.all([
-      // User is errand requester - get all bidders on their errands
-      prisma.errand.findMany({
-        where: {
-          requesterId: user.id,
-          bids: {
-            some: {}, // Has at least one bid
-          },
+    // Get all errands the user is a party to (either requester or accepted runner)
+    const errands = await prisma.errand.findMany({
+      where: {
+        OR: [{ requesterId: userId }, { runnerId: userId }],
+        // Only show conversations for active errands
+        status: { in: ["open", "in_progress", "disputed"] },
+      },
+      include: {
+        requester: { select: { id: true, fullName: true, avatarUrl: true } },
+        runner: { select: { id: true, fullName: true, avatarUrl: true } },
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
         },
-        include: {
-          bids: {
-            where: {
-              status: {
-                in: ["pending", "accepted"], // Only active bids
-              },
-            },
-            include: {
-              runner: {
-                select: {
-                  id: true,
-                  fullName: true,
-                  avatarUrl: true,
-                },
-              },
-            },
-            orderBy: {
-              createdAt: "desc",
-            },
-          },
-          messages: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-          },
-          _count: {
-            select: {
-              messages: {
-                where: {
-                  recipientId: user.id,
-                  read: false,
-                },
+        _count: {
+          select: {
+            messages: {
+              where: {
+                recipientId: userId,
+                read: false,
               },
             },
           },
         },
-        orderBy: {
-          updatedAt: "desc",
-        },
-      }),
+      },
+    });
 
-      // User is bidder - get errands they've bid on
-      prisma.errand.findMany({
-        where: {
-          bids: {
-            some: {
-              runnerId: user.id,
-              status: {
-                in: ["pending", "accepted"],
-              },
-            },
-          },
-        },
-        include: {
-          requester: {
-            select: {
-              id: true,
-              fullName: true,
-              avatarUrl: true,
-            },
-          },
-          bids: {
-            where: {
-              runnerId: user.id,
-            },
-            orderBy: {
-              createdAt: "desc",
-            },
-            take: 1,
-          },
-          messages: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-          },
-          _count: {
-            select: {
-              messages: {
-                where: {
-                  recipientId: user.id,
-                  read: false,
-                },
-              },
-            },
-          },
-        },
-        orderBy: {
-          updatedAt: "desc",
-        },
-      }),
-    ]);
+    const supportUser = await prisma.user.findFirst({
+      where: { email: "support@mashughuli.com" }, // Your designated support user email
+    });
 
-    const conversations = [];
+    const conversations = errands
+      .map((errand) => {
+        const otherUser =
+          errand.requesterId === userId ? errand.runner : errand.requester;
+        const lastMessage = errand.messages[0];
 
-    // Process requester conversations (one per bidder per errand)
-    requesterConversations.forEach((errand) => {
-      errand.bids.forEach((bid) => {
-        const conversationId = `${errand.id}:${bid.runnerId}`;
-        const lastMessage = errand.messages.find(
-          (msg) =>
-            (msg.senderId === user.id && msg.recipientId === bid.runnerId) ||
-            (msg.senderId === bid.runnerId && msg.recipientId === user.id),
-        );
+        // This check is important because an errand might not have a runner yet.
+        if (!otherUser) return null;
 
-        conversations.push({
-          id: conversationId,
+        return {
+          id: `${errand.id}:${[userId, otherUser.id].sort().join(":")}`,
           errandId: errand.id,
-          otherUserId: bid.runner.id,
-          otherUserName: bid.runner.fullName,
-          otherUserAvatar: bid.runner.avatarUrl,
-          lastMessage: lastMessage?.message || `Bid placed: KES ${bid.price}`,
-          timestamp:
-            lastMessage?.createdAt?.toISOString() ||
-            bid.createdAt.toISOString(),
-          unread: errand._count.messages,
           errandTitle: errand.title,
-          bidAmount: bid.price,
-          bidStatus: bid.status,
-          userRole: "requester",
-          conversationType: "bid_conversation",
-        });
-      });
-    });
+          otherUserId: otherUser.id,
+          otherUserName: otherUser.fullName,
+          otherUserAvatar: otherUser.avatarUrl,
+          lastMessage: lastMessage?.message || "No messages yet.",
+          timestamp: (lastMessage?.createdAt || errand.updatedAt).toISOString(),
+          unread: errand._count.messages,
+        };
+      })
+      .filter(Boolean); // Filter out nulls
 
-    // Process bidder conversations
-    bidderConversations.forEach((errand) => {
-      const bid = errand.bids[0]; // User's bid on this errand
-      const conversationId = `${errand.id}-${user.id}`;
-      const lastMessage = errand.messages.find(
-        (msg) =>
-          (msg.senderId === user.id &&
-            msg.recipientId === errand.requesterId) ||
-          (msg.senderId === errand.requesterId && msg.recipientId === user.id),
-      );
+    // Add customer support conversation
+    // if (supportUser && supportUser.id !== userId) {
+    //   const supportConversationId = supportUser.id;
+    //   const supportMessages = await prisma.message.findMany({
+    //     where: {
+    //       errandId: "support",
+    //       OR: [
+    //         { senderId: userId, recipientId: supportUser.id },
+    //         { senderId: supportUser.id, recipientId: userId },
+    //       ],
+    //     },
+    //     orderBy: { createdAt: "desc" },
+    //     take: 1,
+    //   });
+    //   const unreadSupport = await prisma.message.count({
+    //     where: { errandId: "support", recipientId: userId, read: false },
+    //   });
+    //
+    //   conversations.unshift({
+    //     id: supportConversationId,
+    //     errandId: "support", // Special ID for support chats
+    //     errandTitle: "Customer Support",
+    //     otherUserId: supportUser.id,
+    //     otherUserName: "Mashughuli Support",
+    //     otherUserAvatar: null, // Or a dedicated support avatar
+    //     lastMessage: supportMessages[0]?.message || "Welcome! How can we help?",
+    //     timestamp: (supportMessages[0]?.createdAt || new Date()).toISOString(),
+    //     unread: unreadSupport,
+    //   });
+    // }
 
-      conversations.push({
-        id: conversationId,
-        errandId: errand.id,
-        otherUserId: errand.requester.id,
-        otherUserName: errand.requester.fullName,
-        otherUserAvatar: errand.requester.avatarUrl,
-        lastMessage: lastMessage?.message || `Your bid: KES ${bid.price}`,
-        timestamp:
-          lastMessage?.createdAt?.toISOString() || bid.createdAt.toISOString(),
-        unread: errand._count.messages,
-        errandTitle: errand.title,
-        bidAmount: bid.price,
-        bidStatus: bid.status,
-        userRole: "bidder",
-        conversationType: "bid_conversation",
-      });
-    });
-
-    // Remove duplicates and sort by timestamp
-    const uniqueConversations = conversations
-      .filter(
-        (conv, index, self) =>
-          index === self.findIndex((c) => c.id === conv.id),
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-      );
+    // Sort all conversations by the most recent message
+    conversations.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
 
     return {
-      conversations: uniqueConversations,
+      conversations,
     };
   } catch (error) {
     console.error("Failed to fetch conversations:", error);
