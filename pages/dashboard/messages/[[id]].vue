@@ -1,493 +1,217 @@
-<!-- pages/messages/[id].vue -->
 <script setup lang="ts">
-import { MessagingMessageInput } from "#components";
-import {
-  MessageSquare,
-  Loader2,
-  DollarSign,
-  Clock,
-  CheckCircle,
-  XCircle,
-} from "lucide-vue-next";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useAuthStore } from "~/stores/auth";
+import type { ApiResponse } from "~/types";
 import { toast } from "vue-sonner";
 
-// Types
 interface Message {
   id: string;
-  errandId: string;
   senderId: string;
   recipientId: string;
+  errandId: string;
   message: string;
-  read: boolean;
   createdAt: string;
-  status?: "sending" | "sent" | "delivered" | "read";
-  pending?: boolean;
 }
 
 interface Conversation {
   id: string;
   errandId: string;
+  errandTitle: string;
   otherUserId: string;
   otherUserName: string;
-  otherUserAvatar?: string;
+  otherUserAvatar: string | null;
   lastMessage: string;
   timestamp: string;
   unread: number;
-  errandTitle: string;
-  bidAmount?: number;
-  bidStatus?: "pending" | "accepted" | "rejected";
-  userRole: "requester" | "bidder";
-  conversationType: "bid_conversation" | "regular";
 }
 
 // Composables
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 
-// Reactive data
-const activeConversation = ref<string | null>(
-  (route.params.id as string) || null,
-);
+// State
 const conversations = ref<Conversation[]>([]);
 const messages = ref<Message[]>([]);
-const isConnected = ref(false);
+const activeConversationId = ref<string | null>(null);
+const isLoadingConversations = ref(true);
+const isLoadingMessages = ref(false);
 const isUserTyping = ref(false);
-const hasMoreMessages = ref(false);
-const loadingMore = ref(false);
-const currentUserId = ref("currentUser"); // Get from auth
-const messagesContainer = ref<HTMLElement>();
+const ws = ref<WebSocket | null>(null);
 
-// WebSocket
-let ws: WebSocket | null = null;
-let typingTimer: NodeJS.Timeout | null = null;
-
-// Computed
-const activeConv = computed(() =>
-  conversations.value.find((conv) => conv.id === activeConversation.value),
+const currentUserId = computed(() => authStore.user?.id);
+const activeConversation = computed(() =>
+  conversations.value.find((c) => c.id === activeConversationId.value),
 );
+const messagesContainer = ref<HTMLElement | null>(null);
 
-const getBidStatusColor = (status: string) => {
-  switch (status) {
-    case "accepted":
-      return "text-green-600 bg-green-100";
-    case "rejected":
-      return "text-red-600 bg-red-100";
-    case "pending":
-      return "text-yellow-600 bg-yellow-100";
-    default:
-      return "text-gray-600 bg-gray-100";
-  }
-};
+// WebSocket Logic
+function connectWebSocket() {
+  const wsUrl = `ws://${window.location.host}/api/websocket`;
+  ws.value = new WebSocket(wsUrl);
 
-const getBidStatusIcon = (status: string) => {
-  switch (status) {
-    case "accepted":
-      return CheckCircle;
-    case "rejected":
-      return XCircle;
-    case "pending":
-      return Clock;
-    default:
-      return Clock;
-  }
-};
-
-// WebSocket functions
-const connectWebSocket = () => {
-  ws = new WebSocket("ws://localhost:3000/api/websocket");
-
-  ws.onopen = () => {
-    isConnected.value = true;
-    console.log("Connected to chat");
-
-    if (activeConversation.value) {
-      ws?.send(
-        JSON.stringify({
-          type: "join_room",
-          room: activeConversation.value,
-          userId: currentUserId.value,
-        }),
+  ws.value.onopen = () => {
+    console.log("WebSocket connected");
+    if (currentUserId.value) {
+      ws.value?.send(
+        JSON.stringify({ type: "auth", userId: currentUserId.value }),
       );
     }
   };
 
-  ws.onmessage = (event) => {
+  ws.value.onmessage = (event) => {
     const data = JSON.parse(event.data);
-
     switch (data.type) {
-      case "new_message":
-        handleNewMessage(data.message);
-        break;
-      case "message_read":
-        handleMessageStatusUpdate(data.messageId, "read");
-        break;
-      case "user_typing":
-        if (data.userId !== currentUserId.value) {
-          handleTypingIndicator(true);
+      case "history":
+        if (data.conversationId === activeConversationId.value) {
+          messages.value = data.messages;
+          scrollToBottom();
         }
         break;
-      case "user_stop_typing":
-        if (data.userId !== currentUserId.value) {
-          handleTypingIndicator(false);
+      case "message":
+        const convId = getConversationId(
+          data.message.senderId,
+          data.message.recipientId,
+          data.message.errandId,
+        );
+
+        // Update conversation list
+        const convIndex = conversations.value.findIndex((c) => c.id === convId);
+        if (convIndex > -1) {
+          conversations.value[convIndex].lastMessage = data.message.message;
+          conversations.value[convIndex].timestamp = data.message.createdAt;
+          if (
+            data.message.senderId !== currentUserId.value &&
+            convId !== activeConversationId.value
+          ) {
+            conversations.value[convIndex].unread++;
+          }
+          // Move updated conversation to the top
+          const updatedConv = conversations.value.splice(convIndex, 1)[0];
+          conversations.value.unshift(updatedConv);
+        }
+
+        // Add to active chat
+        if (convId === activeConversationId.value) {
+          messages.value.push(data.message);
+          scrollToBottom();
         }
         break;
-      case "conversation_history":
-        messages.value = data.messages;
-        hasMoreMessages.value = data.hasMore;
-        scrollToBottom();
-        break;
-      case "bid_update":
-        updateBidStatus(data.conversationId, data.bidStatus);
+      case "typing":
+        if (
+          data.userId !== currentUserId.value &&
+          data.conversationId === activeConversationId.value
+        ) {
+          isUserTyping.value = true;
+          setTimeout(() => (isUserTyping.value = false), 3000); // Typing indicator timeout
+        }
         break;
     }
   };
 
-  ws.onclose = () => {
-    isConnected.value = false;
-    console.log("Disconnected from chat");
-    setTimeout(connectWebSocket, 3000);
+  ws.value.onclose = () => {
+    console.log("WebSocket disconnected. Reconnecting...");
+    setTimeout(connectWebSocket, 5000);
   };
+}
 
-  ws.onerror = (error) => {
-    console.error("WebSocket error:", error);
-  };
-};
+// Data Fetching
+async function fetchConversations() {
+  isLoadingConversations.value = true;
+  try {
+    const response = await useApiFetch<{ conversations: Conversation[] }>(
+      "/api/conversations",
+    );
+    if (response.data.value?.conversations) {
+      conversations.value = response.data.value.conversations;
+    }
+  } catch (e) {
+    toast.error("Failed to load conversations.");
+  } finally {
+    isLoadingConversations.value = false;
+  }
+}
 
-// Message handlers
-const handleNewMessage = (message: Message) => {
-  const conversationId = getConversationId(
-    message.errandId,
-    message.senderId,
-    message.recipientId,
-  );
+async function selectConversation(conversationId: string) {
+  if (activeConversationId.value === conversationId) return;
 
-  if (conversationId === activeConversation.value) {
-    messages.value.push(message);
-    scrollToBottom();
+  activeConversationId.value = conversationId;
+  if (route.params.id !== conversationId) {
+    router.push(`/dashboard/messages/${conversationId}`);
   }
 
-  updateConversationLastMessage(message);
+  isLoadingMessages.value = true;
+  messages.value = [];
 
-  if (conversationId !== activeConversation.value) {
-    toast({
-      title: "New Message",
-      description: `${getOtherUserName(conversationId)}: ${message.message.substring(0, 50)}...`,
-    });
+  const conversation = conversations.value.find((c) => c.id === conversationId);
+  if (conversation && ws.value?.readyState === WebSocket.OPEN) {
+    ws.value.send(
+      JSON.stringify({
+        type: "join",
+        errandId: conversation.errandId,
+        otherUserId: conversation.otherUserId,
+      }),
+    );
+    conversation.unread = 0; // Optimistically mark as read
+  } else if (ws.value?.readyState !== WebSocket.OPEN) {
+    // If WS is not open, fetch history via HTTP as a fallback
+    // This is a good practice for initial load.
+    await fetchHistory(conversationId);
   }
-};
 
-const handleSendMessage = async (text: string) => {
-  console.log("Send Message");
+  isLoadingMessages.value = false;
+}
 
-  if (!activeConversation.value || !text.trim() || !isConnected.value) return;
+async function fetchHistory(conversationId: string) {
+  const conversation = conversations.value.find((c) => c.id === conversationId);
+  if (!conversation) return;
+  try {
+    const { data } = await useApiFetch<{ messages: Message[] }>(
+      `/api/messages?errandId=${conversation.errandId}&otherUserId=${conversation.otherUserId}`,
+    );
+    if (data.value?.messages) {
+      messages.value = data.value.messages;
+      scrollToBottom();
+    }
+  } catch (e) {
+    toast.error("Failed to load message history.");
+  }
+}
 
-  const tempId = `temp-${Date.now()}`;
-  const newMessage: Message = {
-    id: tempId,
-    errandId: activeConv.value!.errandId,
-    senderId: currentUserId.value,
-    recipientId: activeConv.value!.otherUserId,
-    message: text,
-    read: false,
-    createdAt: new Date().toISOString(),
-    status: "sending",
-    pending: true,
-  };
+const handleSendMessage = (messageText: string) => {
+  if (
+    !ws.value ||
+    ws.value.readyState !== WebSocket.OPEN ||
+    !activeConversation.value ||
+    !currentUserId.value
+  )
+    return;
+  const conversation = activeConversation.value;
+  if (!conversation) return;
 
-  messages.value.push(newMessage);
-  scrollToBottom();
-
-  ws?.send(
+  ws.value.send(
     JSON.stringify({
-      type: "send_message",
-      message: newMessage,
-      room: activeConversation.value,
+      type: "send",
+      errandId: conversation.errandId,
+      recipientId: conversation.otherUserId,
+      message: messageText,
     }),
   );
-
-  try {
-    const response = await useApiRequest("/api/messages", {
-      method: "POST",
-      body: {
-        errandId: newMessage.errandId,
-        recipientId: newMessage.recipientId,
-        message: newMessage.message,
-      },
-    });
-
-    const messageIndex = messages.value.findIndex((m) => m.id === tempId);
-    if (messageIndex !== -1) {
-      messages.value[messageIndex] = {
-        ...messages.value[messageIndex],
-        id: response.id,
-        status: "sent",
-        pending: false,
-      };
-    }
-  } catch (error) {
-    console.error("Failed to send message:", error);
-    messages.value = messages.value.filter((m) => m.id !== tempId);
-    toast({
-      title: "Error",
-      description: "Failed to send message",
-      variant: "destructive",
-    });
-  }
 };
 
 const handleTyping = () => {
-  if (!isConnected.value) return;
-
-  ws?.send(
-    JSON.stringify({
-      type: "typing",
-      room: activeConversation.value,
-      userId: currentUserId.value,
-    }),
-  );
-};
-
-const handleStopTyping = () => {
-  if (!isConnected.value) return;
-
-  ws?.send(
-    JSON.stringify({
-      type: "stop_typing",
-      room: activeConversation.value,
-      userId: currentUserId.value,
-    }),
-  );
-};
-
-const handleTypingIndicator = (typing: boolean) => {
-  isUserTyping.value = typing;
-
-  if (typing) {
-    if (typingTimer) clearTimeout(typingTimer);
-    typingTimer = setTimeout(() => {
-      isUserTyping.value = false;
-    }, 3000);
-  }
-};
-
-const handleMessageRead = async (messageId: string) => {
-  try {
-    await useApiRequest(`/api/messages/${messageId}/read`, {
-      method: "PUT",
-    });
-
-    const messageIndex = messages.value.findIndex((m) => m.id === messageId);
-    if (messageIndex !== -1) {
-      messages.value[messageIndex].read = true;
-    }
-  } catch (error) {
-    console.error("Failed to mark message as read:", error);
-  }
-};
-
-const handleMessageStatusUpdate = (messageId: string, status: string) => {
-  const messageIndex = messages.value.findIndex((m) => m.id === messageId);
-  if (messageIndex !== -1) {
-    messages.value[messageIndex].status = status as any;
-  }
-};
-
-// Bid management
-const handleBidAccept = async (conversationId: string) => {
-  try {
-    const conversation = conversations.value.find(
-      (c) => c.id === conversationId,
-    );
-    if (!conversation) return;
-
-    await $fetch(`/api/bids/accept`, {
-      method: "POST",
-      body: {
-        errandId: conversation.errandId,
-        runnerId: conversation.otherUserId,
-      },
-    });
-
-    updateBidStatus(conversationId, "accepted");
-
-    toast({
-      title: "Bid Accepted",
-      description: `You've accepted the bid from ${conversation.otherUserName}`,
-    });
-  } catch (error) {
-    console.error("Failed to accept bid:", error);
-    toast({
-      title: "Error",
-      description: "Failed to accept bid",
-      variant: "destructive",
-    });
-  }
-};
-
-const handleBidReject = async (conversationId: string) => {
-  try {
-    const conversation = conversations.value.find(
-      (c) => c.id === conversationId,
-    );
-    if (!conversation) return;
-
-    await useApiRequest(`/api/bids/reject`, {
-      method: "POST",
-      body: {
-        errandId: conversation.errandId,
-        runnerId: conversation.otherUserId,
-      },
-    });
-
-    updateBidStatus(conversationId, "rejected");
-
-    toast({
-      title: "Bid Rejected",
-      description: `You've rejected the bid from ${conversation.otherUserName}`,
-    });
-  } catch (error) {
-    console.error("Failed to reject bid:", error);
-    toast({
-      title: "Error",
-      description: "Failed to reject bid",
-      variant: "destructive",
-    });
-  }
-};
-
-const updateBidStatus = (conversationId: string, status: string) => {
-  const convIndex = conversations.value.findIndex(
-    (c) => c.id === conversationId,
-  );
-  if (convIndex !== -1) {
-    conversations.value[convIndex].bidStatus = status as any;
-  }
-};
-
-// Conversation functions
-const setActiveConversation = async (conversationId: string) => {
-  activeConversation.value = conversationId;
-
-  await navigateTo(`/dashboard/messages/${conversationId}`);
-
-  if (isConnected.value) {
-    ws?.send(
+  if (ws.value && activeConversationId.value) {
+    ws.value.send(
       JSON.stringify({
-        type: "join_room",
-        room: conversationId,
-        userId: currentUserId.value,
+        type: "typing",
+        conversationId: activeConversationId.value,
       }),
     );
   }
-
-  await loadMessages(conversationId);
-  markConversationAsRead(conversationId);
 };
 
-const loadMessages = async (conversationId: string, offset = 0) => {
-  try {
-    const conversation = conversations.value.find(
-      (c) => c.id === conversationId,
-    );
-    if (!conversation) return;
-
-    const { data } = await useApiFetch<Message[]>(`/api/messages`, {
-      query: {
-        errandId: conversation.errandId,
-        senderId: currentUserId.value,
-        recipientId: conversation.otherUserId,
-        offset,
-        limit: 50,
-      },
-    });
-
-    if (offset === 0) {
-      messages.value = data.value || [];
-      scrollToBottom();
-    } else {
-      messages.value = [...(data.value || []), ...messages.value];
-    }
-
-    hasMoreMessages.value = (data.value?.length || 0) === 50;
-  } catch (error) {
-    console.error("Failed to load messages:", error);
-  }
-};
-
-const loadMoreMessages = async () => {
-  if (loadingMore.value || !hasMoreMessages.value) return;
-
-  loadingMore.value = true;
-  await loadMessages(activeConversation.value!, messages.value.length);
-  loadingMore.value = false;
-};
-
-const loadConversations = async () => {
-  try {
-    const { data } = await useApiFetch<{ conversations: Conversation[] }>(
-      "/api/conversations",
-    );
-    if (data.value) {
-      conversations.value = data.value.conversations;
-    }
-  } catch (error) {
-    console.error("Failed to load conversations:", error);
-  }
-};
-
-const markConversationAsRead = (conversationId: string) => {
-  const convIndex = conversations.value.findIndex(
-    (c) => c.id === conversationId,
-  );
-  if (convIndex !== -1) {
-    conversations.value[convIndex].unread = 0;
-  }
-};
-
-const updateConversationLastMessage = (message: Message) => {
-  const conversationId = getConversationId(
-    message.errandId,
-    message.senderId,
-    message.recipientId,
-  );
-  const convIndex = conversations.value.findIndex(
-    (c) => c.id === conversationId,
-  );
-
-  if (convIndex !== -1) {
-    conversations.value[convIndex].lastMessage = message.message;
-    conversations.value[convIndex].timestamp = message.createdAt;
-    if (message.senderId !== currentUserId.value) {
-      conversations.value[convIndex].unread += 1;
-    }
-  }
-};
-
-// Utility functions
-const getConversationId = (
-  errandId: string,
-  senderId: string,
-  recipientId: string,
-) => {
-  const otherUserId = senderId === currentUserId.value ? recipientId : senderId;
-  return `${errandId}-${otherUserId}`;
-};
-
-const getOtherUserName = (conversationId: string) => {
-  const conv = conversations.value.find((c) => c.id === conversationId);
-  return conv?.otherUserName || "Unknown User";
-};
-
-const getInitials = (name: string) => {
-  return (
-    name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase() || "U"
-  );
-};
-
+// Utility
 const scrollToBottom = () => {
   nextTick(() => {
     if (messagesContainer.value) {
@@ -496,436 +220,243 @@ const scrollToBottom = () => {
   });
 };
 
-const handleScroll = () => {
-  if (messagesContainer.value) {
-    const { scrollTop } = messagesContainer.value;
-    if (scrollTop === 0 && hasMoreMessages.value && !loadingMore.value) {
-      loadMoreMessages();
-    }
-  }
+const getInitials = (name: string) =>
+  name
+    ?.split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase() || "U";
+const getConversationId = (
+  userId1: string,
+  userId2: string,
+  errandId: string,
+) => {
+  const sortedIds = [userId1, userId2].sort();
+  return `${errandId}:${sortedIds[0]}:${sortedIds[1]}`;
 };
 
-// Lifecycle
+// Lifecycle & Watchers
 onMounted(async () => {
-  await loadConversations();
+  await fetchConversations();
   connectWebSocket();
-
-  if (activeConversation.value) {
-    await loadMessages(activeConversation.value);
+  const routeId = route.params.id as string | undefined;
+  if (routeId) {
+    // Ensure the conversation exists before selecting it
+    const conversationExists = conversations.value.some(
+      (c) => c.id === routeId,
+    );
+    if (conversationExists) {
+      await selectConversation(routeId);
+    } else if (conversations.value.length > 0) {
+      await selectConversation(conversations.value[0].id);
+    }
+  } else if (conversations.value.length > 0) {
+    await selectConversation(conversations.value[0].id);
   }
 });
 
 onUnmounted(() => {
-  if (ws) {
-    ws.close();
-  }
-  if (typingTimer) {
-    clearTimeout(typingTimer);
+  ws.value?.close();
+});
+
+watch(currentUserId, (newVal) => {
+  if (newVal && ws.value?.readyState === WebSocket.OPEN) {
+    ws.value.send(JSON.stringify({ type: "auth", userId: newVal }));
   }
 });
 
-// Watchers
 watch(
   () => route.params.id,
-  async (newId) => {
-    if (newId && newId !== activeConversation.value) {
-      await setActiveConversation(newId as string);
+  (newId) => {
+    const conversationId = Array.isArray(newId) ? newId[0] : newId;
+    if (conversationId && conversationId !== activeConversationId.value) {
+      selectConversation(conversationId);
     }
   },
 );
 </script>
-
 <template>
-  <div
-    class="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"
-  >
-    <div class="flex-1 p-4 lg:p-6">
-      <div class="container mx-auto max-w-7xl h-[calc(100vh-8rem)]">
-        <div
-          class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-slate-700/30 h-full overflow-hidden"
-        >
-          <div class="grid grid-cols-1 lg:grid-cols-4 h-full">
-            <!-- Conversations Sidebar -->
-            <div
-              class="lg:col-span-1 border-r border-slate-200/50 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50"
-            >
-              <div
-                class="p-6 border-b border-slate-200/50 dark:border-slate-700/50"
-              >
-                <div class="flex items-center justify-between">
-                  <h2
-                    class="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent"
-                  >
-                    Messages
-                  </h2>
-                  <div class="flex items-center space-x-2">
-                    <div class="flex items-center space-x-1">
-                      <div
-                        :class="[
-                          'w-2 h-2 rounded-full transition-colors duration-300',
-                          isConnected ? 'bg-green-500' : 'bg-red-500',
-                        ]"
-                      ></div>
-                      <span class="text-xs text-slate-500 dark:text-slate-400">
-                        {{ isConnected ? "Online" : "Offline" }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="overflow-y-auto flex-1 max-h-[calc(100vh-12rem)]">
-                <div class="p-4 space-y-2">
-                  <div
-                    v-for="conversation in conversations"
-                    :key="conversation.id"
-                    @click="setActiveConversation(conversation.id)"
-                    :class="[
-                      'p-4 rounded-xl cursor-pointer transition-all duration-200 border border-transparent hover:border-blue-200/50 hover:shadow-md',
-                      activeConversation === conversation.id
-                        ? 'bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-200/50 dark:border-blue-700/50'
-                        : 'hover:bg-white/50 dark:hover:bg-slate-800/50',
-                    ]"
-                  >
-                    <div class="flex items-start space-x-3">
-                      <div class="relative flex-shrink-0">
-                        <Avatar class="w-12 h-12 ring-2 ring-white shadow-sm">
-                          <AvatarImage :src="conversation.otherUserAvatar" />
-                          <AvatarFallback
-                            class="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-sm"
-                          >
-                            {{ getInitials(conversation.otherUserName) }}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div
-                          v-if="conversation.unread > 0"
-                          class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-semibold"
-                        >
-                          {{
-                            conversation.unread > 9 ? "9+" : conversation.unread
-                          }}
-                        </div>
-                      </div>
-
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between mb-1">
-                          <h3
-                            class="font-semibold text-sm text-slate-900 dark:text-white truncate"
-                          >
-                            {{ conversation.otherUserName }}
-                          </h3>
-                          <span
-                            class="text-xs text-slate-500 dark:text-slate-400 flex-shrink-0"
-                          >
-                            {{
-                              new Date(
-                                conversation.timestamp,
-                              ).toLocaleDateString()
-                            }}
-                          </span>
-                        </div>
-
-                        <p
-                          class="text-xs text-slate-600 dark:text-slate-300 mb-2 truncate"
-                        >
-                          📋 {{ conversation.errandTitle }}
-                        </p>
-
-                        <!-- Bid Information -->
-                        <div
-                          v-if="conversation.bidAmount"
-                          class="flex items-center justify-between mb-2"
-                        >
-                          <div class="flex items-center space-x-2">
-                            <DollarSign class="w-3 h-3 text-green-600" />
-                            <span class="text-xs font-semibold text-green-600">
-                              KES {{ conversation.bidAmount.toLocaleString() }}
-                            </span>
-                          </div>
-
-                          <div
-                            v-if="conversation.bidStatus"
-                            :class="[
-                              'flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium',
-                              getBidStatusColor(conversation.bidStatus),
-                            ]"
-                          >
-                            <component
-                              :is="getBidStatusIcon(conversation.bidStatus)"
-                              class="w-3 h-3"
-                            />
-                            <span class="capitalize">{{
-                              conversation.bidStatus
-                            }}</span>
-                          </div>
-                        </div>
-
-                        <p
-                          class="text-xs text-slate-500 dark:text-slate-400 truncate"
-                        >
-                          {{ conversation.lastMessage }}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Messages Area -->
-            <div class="lg:col-span-3 flex flex-col h-full">
-              <div v-if="activeConversation" class="flex flex-col h-full">
-                <!-- Chat Header -->
-                <div
-                  class="p-6 border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-white/50 to-slate-50/50 dark:from-slate-800/50 dark:to-slate-900/50"
-                >
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-4">
-                      <div class="relative">
-                        <Avatar class="w-12 h-12 ring-2 ring-white shadow-lg">
-                          <AvatarImage :src="activeConv?.otherUserAvatar" />
-                          <AvatarFallback
-                            class="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold"
-                          >
-                            {{ getInitials(activeConv?.otherUserName) }}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div
-                          class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"
-                        ></div>
-                      </div>
-                      <div class="flex-1">
-                        <h3
-                          class="font-bold text-lg text-slate-900 dark:text-white"
-                        >
-                          {{ activeConv?.otherUserName }}
-                        </h3>
-                        <p
-                          class="text-sm text-slate-500 dark:text-slate-400 flex items-center"
-                        >
-                          <span class="mr-2">📋</span>
-                          {{ activeConv?.errandTitle }}
-                        </p>
-
-                        <!-- Bid info in header -->
-                        <div
-                          v-if="activeConv?.bidAmount"
-                          class="flex items-center space-x-4 mt-1"
-                        >
-                          <div
-                            class="flex items-center space-x-1 text-sm text-green-600"
-                          >
-                            <DollarSign class="w-4 h-4" />
-                            <span class="font-semibold"
-                              >KES
-                              {{ activeConv.bidAmount.toLocaleString() }}</span
-                            >
-                          </div>
-
-                          <div
-                            v-if="activeConv.bidStatus"
-                            :class="[
-                              'flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium',
-                              getBidStatusColor(activeConv.bidStatus),
-                            ]"
-                          >
-                            <component
-                              :is="getBidStatusIcon(activeConv.bidStatus)"
-                              class="w-3 h-3"
-                            />
-                            <span class="capitalize">{{
-                              activeConv.bidStatus
-                            }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Bid Actions for Requesters -->
-                    <div
-                      v-if="
-                        activeConv?.userRole === 'requester' &&
-                        activeConv?.bidStatus === 'pending'
-                      "
-                      class="flex space-x-2"
-                    >
-                      <Button
-                        @click="handleBidAccept(activeConv.id)"
-                        size="sm"
-                        class="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <CheckCircle class="w-4 h-4 mr-1" />
-                        Accept Bid
-                      </Button>
-                      <Button
-                        @click="handleBidReject(activeConv.id)"
-                        variant="outline"
-                        size="sm"
-                        class="border-red-300 text-red-600 hover:bg-red-50"
-                      >
-                        <XCircle class="w-4 h-4 mr-1" />
-                        Reject
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Messages Container -->
-                <div
-                  ref="messagesContainer"
-                  @scroll="handleScroll"
-                  class="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-slate-50/30 to-white/50 dark:from-slate-800/30 dark:to-slate-900/50"
-                >
-                  <!-- Load More Messages -->
-                  <div v-if="hasMoreMessages" class="text-center py-2">
-                    <Button
-                      @click="loadMoreMessages"
-                      :disabled="loadingMore"
-                      variant="ghost"
-                      size="sm"
-                      class="text-slate-500 hover:text-slate-700"
-                    >
-                      <Loader2
-                        v-if="loadingMore"
-                        class="w-4 h-4 mr-2 animate-spin"
-                      />
-                      Load More Messages
-                    </Button>
-                  </div>
-
-                  <!-- Messages -->
-                  <div
-                    v-for="message in messages"
-                    :key="message.id"
-                    :class="[
-                      'flex',
-                      message.senderId === currentUserId
-                        ? 'justify-end'
-                        : 'justify-start',
-                    ]"
-                  >
-                    <div
-                      :class="[
-                        'max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-sm relative',
-                        message.senderId === currentUserId
-                          ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white ml-12'
-                          : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white mr-12 border border-slate-200/50 dark:border-slate-700/50',
-                      ]"
-                    >
-                      <p class="text-sm leading-relaxed">
-                        {{ message.message }}
-                      </p>
-
-                      <div
-                        :class="[
-                          'flex items-center justify-between mt-2 text-xs',
-                          message.senderId === currentUserId
-                            ? 'text-blue-100'
-                            : 'text-slate-500 dark:text-slate-400',
-                        ]"
-                      >
-                        <span>{{
-                          new Date(message.createdAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        }}</span>
-
-                        <!-- Message Status for Sent Messages -->
-                        <div
-                          v-if="message.senderId === currentUserId"
-                          class="flex items-center ml-2"
-                        >
-                          <Loader2
-                            v-if="message.status === 'sending'"
-                            class="w-3 h-3 animate-spin"
-                          />
-                          <CheckCircle
-                            v-else-if="message.status === 'read'"
-                            class="w-3 h-3"
-                          />
-                          <CheckCircle
-                            v-else-if="message.status === 'delivered'"
-                            class="w-3 h-3 opacity-60"
-                          />
-                          <Clock v-else class="w-3 h-3 opacity-60" />
-                        </div>
-                      </div>
-
-                      <!-- Message Tail -->
-                      <div
-                        :class="[
-                          'absolute top-4 w-3 h-3 transform rotate-45',
-                          message.senderId === currentUserId
-                            ? 'bg-blue-500 -right-1'
-                            : 'bg-white dark:bg-slate-800 -left-1 border-l border-t border-slate-200/50 dark:border-slate-700/50',
-                        ]"
-                      ></div>
-                    </div>
-                  </div>
-
-                  <!-- Typing Indicator -->
-                  <div v-if="isUserTyping" class="flex justify-start">
-                    <div
-                      class="bg-white dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700/50 px-4 py-3 rounded-2xl shadow-sm mr-12"
-                    >
-                      <div class="flex space-x-1">
-                        <div
-                          class="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-                        ></div>
-                        <div
-                          class="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-                          style="animation-delay: 0.1s"
-                        ></div>
-                        <div
-                          class="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-                          style="animation-delay: 0.2s"
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Message Input -->
-                <div
-                  class="p-6 border-t border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50"
-                >
-                  <MessagingMessageInput
-                    @sendMessage="handleSendMessage"
-                    @typing="handleTyping"
-                    @stop-typing="handleStopTyping"
-                    :disabled="!isConnected"
-                    :placeholder="
-                      isConnected ? 'Type your message...' : 'Connecting...'
-                    "
-                  />
-                </div>
-              </div>
-
-              <!-- No Conversation Selected -->
-              <div v-else class="flex-1 flex items-center justify-center">
-                <div class="text-center">
-                  <MessageSquare
-                    class="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4"
-                  />
-                  <h3
-                    class="text-xl font-semibold text-slate-600 dark:text-slate-300 mb-2"
-                  >
-                    Select a conversation
-                  </h3>
-                  <p class="text-slate-500 dark:text-slate-400">
-                    Choose a conversation from the sidebar to start messaging
-                  </p>
-                </div>
+  <div class="h-full flex flex-col">
+    <div class="flex-1 grid grid-cols-12 min-h-0">
+      <!-- Conversation List Sidebar -->
+      <aside
+        class="col-span-12 lg:col-span-4 xl:col-span-3 bg-slate-50 dark:bg-slate-900/50 border-r border-slate-200 dark:border-slate-800 flex flex-col"
+      >
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800">
+          <h2 class="text-xl font-bold">Messages</h2>
+        </div>
+        <div class="flex-1 overflow-y-auto">
+          <div v-if="isLoadingConversations" class="p-4 space-y-4">
+            <div v-for="i in 5" :key="i" class="flex items-center gap-3">
+              <Skeleton class="w-12 h-12 rounded-full" />
+              <div class="space-y-2 flex-1">
+                <Skeleton class="h-4 w-3/4" />
+                <Skeleton class="h-4 w-1/2" />
               </div>
             </div>
           </div>
+          <div v-else class="p-2 space-y-1">
+            <button
+              v-for="conv in conversations"
+              :key="conv.id"
+              @click="selectConversation(conv.id)"
+              :class="[
+                'w-full text-left p-3 rounded-lg transition-colors flex items-center gap-3',
+                activeConversationId === conv.id
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-slate-200/50 dark:hover:bg-slate-800/50',
+              ]"
+            >
+              <div class="relative">
+                <Avatar>
+                  <AvatarImage
+                    :src="conv.otherUserAvatar"
+                    :alt="conv.otherUserName"
+                  />
+                  <AvatarFallback>{{
+                    getInitials(conv.otherUserName)
+                  }}</AvatarFallback>
+                </Avatar>
+                <div
+                  v-if="conv.unread > 0"
+                  class="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"
+                >
+                  {{ conv.unread }}
+                </div>
+              </div>
+              <div class="flex-1 overflow-hidden">
+                <div class="flex justify-between items-baseline">
+                  <p class="font-semibold truncate">{{ conv.otherUserName }}</p>
+                  <p class="text-xs text-muted-foreground flex-shrink-0">
+                    {{
+                      new Date(conv.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    }}
+                  </p>
+                </div>
+                <p class="text-sm text-muted-foreground truncate">
+                  {{ conv.lastMessage }}
+                </p>
+              </div>
+            </button>
+          </div>
         </div>
-      </div>
+      </aside>
+
+      <!-- Message Area -->
+      <main
+        class="col-span-12 lg:col-span-8 xl:col-span-9 flex flex-col bg-white dark:bg-slate-900"
+      >
+        <div
+          v-if="!activeConversation"
+          class="flex-1 flex items-center justify-center text-center"
+        >
+          <div>
+            <Icon
+              name="mdi:message-text-outline"
+              class="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4"
+            />
+            <h3
+              class="text-xl font-semibold text-slate-600 dark:text-slate-300"
+            >
+              Select a conversation
+            </h3>
+            <p class="text-muted-foreground">
+              Choose a conversation to start messaging.
+            </p>
+          </div>
+        </div>
+        <template v-else>
+          <!-- Chat Header -->
+          <header
+            class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between"
+          >
+            <div v-if="activeConversation" class="flex items-center gap-3">
+              <Avatar>
+                <AvatarImage
+                  :src="activeConversation.otherUserAvatar"
+                  :alt="activeConversation.otherUserName"
+                />
+                <AvatarFallback>{{
+                  getInitials(activeConversation.otherUserName)
+                }}</AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 class="font-semibold">
+                  {{ activeConversation.otherUserName }}
+                </h3>
+                <p class="text-sm text-muted-foreground truncate">
+                  Re: {{ activeConversation.errandTitle }}
+                </p>
+              </div>
+            </div>
+            <div
+              v-if="isUserTyping"
+              class="text-sm text-muted-foreground animate-pulse"
+            >
+              Typing...
+            </div>
+          </header>
+
+          <!-- Messages -->
+          <div
+            ref="messagesContainer"
+            class="flex-1 p-6 overflow-y-auto space-y-4"
+          >
+            <div
+              v-if="isLoadingMessages"
+              class="flex justify-center items-center h-full"
+            >
+              <Icon name="mdi:loading" class="w-8 h-8 animate-spin" />
+            </div>
+            <div
+              v-else
+              v-for="message in messages"
+              :key="message.id"
+              :class="[
+                'flex',
+                message.senderId === currentUserId
+                  ? 'justify-end'
+                  : 'justify-start',
+              ]"
+            >
+              <div
+                :class="[
+                  'p-3 rounded-2xl max-w-lg',
+                  message.senderId === currentUserId
+                    ? 'bg-primary text-primary-foreground rounded-br-none'
+                    : 'bg-muted text-muted-foreground rounded-bl-none',
+                ]"
+              >
+                <p>{{ message.message }}</p>
+                <p class="text-xs opacity-70 mt-1 text-right">
+                  {{
+                    new Date(message.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Message Input -->
+          <div
+            class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50"
+          >
+            <MessagingMessageInput
+              @send-message="handleSendMessage"
+              @typing="handleTyping"
+            />
+          </div>
+        </template>
+      </main>
     </div>
   </div>
 </template>
-
 <style scoped>
 /* Custom scrollbar styles */
 .overflow-y-auto::-webkit-scrollbar {
