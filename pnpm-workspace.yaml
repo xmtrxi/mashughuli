@@ -1,6 +1,9 @@
-onlyBuiltDependencies:
-  - "@tailwindcss/oxide"
-  - esbuild
-  - vue-demi
 packages:
   - app/**
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - '@tailwindcss/oxide'
+  - esbuild
+  - prisma
+  - vue-demi
