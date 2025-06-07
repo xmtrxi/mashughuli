@@ -10,20 +10,28 @@ const props = defineProps<{
   links: Link[];
   settingsLinks: Link[];
 }>();
-const authStore = useAuthStore();
 
+const authStore = useAuthStore();
+const user = computed(() => authStore.user);
 </script>
 <template>
-  <div class="py-6 space-y-6">
+  <div v-if="user" class="py-6 space-y-6">
     <div class="px-6 flex flex-col items-center text-center space-y-3">
-      <div
-        class="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center"
-      >
-        <span class="text-2xl font-medium text-primary-400">{{ authStore.user.fullName.charAt(0).toUpperCase()}}</span>
-      </div>
+      <Avatar class="w-20 h-20 text-3xl">
+        <AvatarImage
+          v-if="user.avatarUrl"
+          :src="user.avatarUrl"
+          :alt="user.fullName"
+        />
+        <AvatarFallback>
+          {{ user.fullName.charAt(0).toUpperCase() }}
+        </AvatarFallback>
+      </Avatar>
       <div>
-        <h3 class="font-medium">{{authStore.user.fullName}}</h3>
-        <p class="text-sm text-muted-foreground capitalize">Runners</p>
+        <h3 class="font-medium">{{ user.fullName }}</h3>
+        <p class="text-sm text-muted-foreground capitalize">
+          {{ user.primaryRole }}
+        </p>
       </div>
     </div>
 
@@ -34,7 +42,7 @@ const authStore = useAuthStore();
         v-for="link in links"
         :key="link.href"
         :to="link.href"
-        active-class="bg-primary-100 text-primary-600 font-medium"
+        active-class="bg-primary text-primary-foreground font-medium hover:bg-primary/90 hover:text-primary-foreground"
         :class="
           cn(
             'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-muted-foreground hover:text-foreground hover:bg-accent',
@@ -51,7 +59,7 @@ const authStore = useAuthStore();
         v-for="link in settingsLinks"
         :key="link.href"
         :to="link.href"
-        active-class="bg-primary-100 text-primary-600 font-medium"
+        active-class="bg-primary text-primary-foreground font-medium hover:bg-primary/90 hover:text-primary-foreground"
         :class="
           cn(
             'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-muted-foreground hover:text-foreground hover:bg-accent',
