@@ -3,83 +3,24 @@ import type { User } from "@prisma/client";
 import { buttonVariants } from "~/components/ui/button";
 import type { ApiResponse } from "~/types";
 
-const { data } = await useApiFetch<ApiResponse<User[]>>("/api/users/runners");
-const users = ref(data.value?.data);
+const { data, pending } =
+  await useApiFetch<ApiResponse<User[]>>("/api/users/runners");
+const runners = computed(() => data.value?.data ?? []);
 
-const runners = [
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    location: "Nairobi, Kenya",
-    bio: "Professional runner with 3+ years of experience. Specialized in shopping and delivery errands.",
-    rating: 4.9,
-    completedErrands: 124,
-    expertise: ["Shopping", "Delivery", "Pick-up"],
-    available: true,
-    image:
-      "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=100&h=100",
-  },
-  {
-    id: 2,
-    name: "Michael Kamau",
-    location: "Mombasa, Kenya",
-    bio: "Reliable and efficient. I handle administrative tasks and waiting in line so you don't have to.",
-    rating: 4.7,
-    completedErrands: 89,
-    expertise: ["Admin Tasks", "Queuing Services", "Research"],
-    available: true,
-    image:
-      "https://images.unsplash.com/photo-1531891437562-4301cf35b7e4?auto=format&fit=crop&q=80&w=100&h=100",
-  },
-  {
-    id: 3,
-    name: "Amina Wanjiku",
-    location: "Nairobi, Kenya",
-    bio: "Detail-oriented runner focused on customer satisfaction. I specialize in personal shopping with an eye for quality.",
-    rating: 5.0,
-    completedErrands: 67,
-    expertise: ["Shopping", "Gift Selection", "Personal Assistant"],
-    available: true,
-    image:
-      "https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&q=80&w=100&h=100",
-  },
-  {
-    id: 4,
-    name: "Daniel Ochieng",
-    location: "Kisumu, Kenya",
-    bio: "Quick and efficient service. I'm your go-to person for urgent deliveries and time-sensitive tasks.",
-    rating: 4.5,
-    completedErrands: 108,
-    expertise: ["Urgent Delivery", "Transport", "Courier Service"],
-    available: false,
-    image:
-      "https://images.unsplash.com/photo-1542178243-bc20204b769e?auto=format&fit=crop&q=80&w=100&h=100",
-  },
-  {
-    id: 5,
-    name: "Elizabeth Njeri",
-    location: "Nakuru, Kenya",
-    bio: "Experienced in handling complex errands. I pride myself on finding solutions to challenging requests.",
-    rating: 4.8,
-    completedErrands: 73,
-    expertise: ["Problem Solving", "Research", "Organization"],
-    available: true,
-    image:
-      "https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?auto=format&fit=crop&q=80&w=100&h=100",
-  },
-  {
-    id: 6,
-    name: "James Maina",
-    location: "Nairobi, Kenya",
-    bio: "Former logistics professional bringing efficiency to all your errand needs. Specializing in business errands.",
-    rating: 4.6,
-    completedErrands: 91,
-    expertise: ["Business Services", "Document Handling", "Office Tasks"],
-    available: true,
-    image:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=100&h=100",
-  },
-];
+const searchQuery = ref("");
+const locationFilter = ref("");
+
+const filteredRunners = computed(() => {
+  if (!runners.value) return [];
+  return runners.value.filter((runner) => {
+    const nameMatch = runner.fullName
+      .toLowerCase()
+      .includes(searchQuery.value.toLowerCase());
+    // In a real app, you'd have location data on the user model to filter by
+    // const locationMatch = !locationFilter.value || runner.location?.toLowerCase().includes(locationFilter.value.toLowerCase());
+    return nameMatch;
+  });
+});
 </script>
 <template>
   <div>
@@ -100,6 +41,7 @@ const runners = [
           <div class="flex flex-col md:flex-row gap-4 mb-4">
             <div class="flex-1 relative">
               <Input
+                v-model="searchQuery"
                 placeholder="Search by name, skill or location"
                 class="pl-10"
               />
@@ -142,27 +84,40 @@ const runners = [
               <TabsTrigger value="topRated">Top Rated</TabsTrigger>
               <TabsTrigger value="nearby">Nearby</TabsTrigger>
             </TabsList>
-            <p class="text-muted-foreground text-sm hidden md:block">
-              Showing <strong>{{ runners.length }}</strong> runners
+            <p
+              v-if="!pending"
+              class="text-muted-foreground text-sm hidden md:block"
+            >
+              Showing <strong>{{ filteredRunners.length }}</strong> runners
             </p>
           </div>
+          <div v-if="pending" class="text-center py-10">
+            <Icon name="mdi:loading" class="h-8 w-8 animate-spin" />
+            <p>Loading runners...</p>
+          </div>
           <TabsContent
+            v-else
             value="all"
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
             <Card
-              v-for="runner in users"
+              v-for="runner in filteredRunners"
               :key="runner.id"
-              :class="!runner.status ? 'opacity-70' : ''"
+              :class="runner.status !== 'active' ? 'opacity-70' : ''"
+              class="card-hover"
             >
               <CardHeader class="pb-3">
                 <div class="flex justify-between">
                   <div class="flex gap-4 items-center">
-                    <NuxtImg
-                      :src="runner.avatarUrl"
-                      :alt="runner.fullName"
-                      class="w-12 h-12 rounded-full object-cover"
-                    />
+                    <Avatar class="w-12 h-12">
+                      <AvatarImage
+                        :src="runner.avatarUrl!"
+                        :alt="runner.fullName"
+                      />
+                      <AvatarFallback>
+                        {{ runner.fullName.charAt(0).toUpperCase() }}
+                      </AvatarFallback>
+                    </Avatar>
                     <div>
                       <CardTitle class="text-lg">{{
                         runner.fullName
@@ -173,42 +128,40 @@ const runners = [
                       </CardDescription>
                     </div>
                   </div>
-                  <Badge class="py-0 rounded-2xl">
-                    {{ runner.status ? "Available" : "Busy" }}
+                  <Badge
+                    :variant="
+                      runner.status === 'active' ? 'default' : 'outline'
+                    "
+                    class="py-0 rounded-2xl"
+                  >
+                    {{ runner.status === "active" ? "Available" : "Busy" }}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <p class="text-sm text-muted-foreground mb-4"></p>
-                <div class="flex gap-1 mb-3">
-                  <Badge v-for="skill in runner.expertise" :key="skill">
-                    {{ skill }}
-                  </Badge>
+                <p class="text-sm text-muted-foreground mb-4 line-clamp-2">
+                  {{ runner.bio }}
+                </p>
+                <div class="flex flex-wrap gap-1 mb-3">
+                  <template v-if="runner.categories">
+                    <Badge
+                      v-for="(cat, index) in Object.keys(
+                        runner.categories,
+                      ).slice(0, 3)"
+                      :key="index"
+                      variant="secondary"
+                    >
+                      {{ cat }}
+                    </Badge>
+                  </template>
                 </div>
-                <!-- <div class="flex justify-between text-sm"> -->
-                <!--   <span class="flex items-center"> -->
-                <!--     <Icon -->
-                <!--       name="mdi:star" -->
-                <!--       class="h-4 w-4 text-yellow-500 mr-1 fill-yellow-500" -->
-                <!--     /> -->
-                <!--     <strong>{{ runner.rating }}</strong -->
-                <!--     >/5.0 -->
-                <!--   </span> -->
-                <!--   <span class="flex items-center"> -->
-                <!--     <Icon -->
-                <!--       name="mdi:thumbs-up" -->
-                <!--       class="h-4 w-4 text-primary-400 mr-1" -->
-                <!--     /> -->
-                <!--     {{ runner.completedErrands }} errands -->
-                <!--   </span> -->
-                <!-- </div> -->
               </CardContent>
               <CardFooter>
                 <NuxtLink
                   :class="
                     buttonVariants({ variant: 'default', class: 'w-full' })
                   "
-                  :to="``"
+                  :to="`/runners/${runner.id}`"
                   >View Profile</NuxtLink
                 >
               </CardFooter>

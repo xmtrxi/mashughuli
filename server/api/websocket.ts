@@ -1,341 +1,163 @@
-import { Redis } from "ioredis";
-import { PrismaClient } from "@prisma/client";
+import { Peer } from "crossws";
+import { useAuthUser } from "../services/auth/auth.service";
+import prisma from "~/lib/prisma";
 
-const redis = new Redis(useRuntimeConfig().redisUrl);
-const prisma = new PrismaClient();
-const clients = new Map();
-const userRooms = new Map(); // Track which rooms users are in
+// In-memory store for active connections
+// Key: userId, Value: Peer
+const clients = new Map<string, Peer>();
+
+// In-memory store for room subscriptions
+// Key: conversationId, Value: Set<userId>
+const rooms = new Map<string, Set<string>>();
+
+// Function to generate a consistent conversation ID
+function getConversationId(userId1: string, userId2: string, errandId: string) {
+  const sortedIds = [userId1, userId2].sort();
+  return `${errandId}:${sortedIds[0]}:${sortedIds[1]}`;
+}
 
 export default defineWebSocketHandler({
   async open(peer) {
-    console.log("Client connected:", peer.id);
-    clients.set(peer.id, {
-      peer,
-      userId: null,
-      rooms: new Set(),
-    });
+    console.log("[ws] open", peer);
+  },
+
+  async close(peer) {
+    console.log("[ws] close", peer);
+    // Find the user and remove them from all rooms and the client list
+    let userIdToRemove: string | null = null;
+    for (const [userId, clientPeer] of clients.entries()) {
+      if (clientPeer === peer) {
+        userIdToRemove = userId;
+        break;
+      }
+    }
+    if (userIdToRemove) {
+      clients.delete(userIdToRemove);
+      rooms.forEach((users, conversationId) => {
+        if (users.has(userIdToRemove!)) {
+          users.delete(userIdToRemove!);
+          // Notify others in the room
+          broadcast(
+            conversationId,
+            {
+              type: "user_left",
+              userId: userIdToRemove,
+            },
+            userIdToRemove,
+          );
+        }
+      });
+    }
+  },
+
+  async error(peer, error) {
+    console.log("[ws] error", peer, error);
   },
 
   async message(peer, message) {
-    try {
-      const data = JSON.parse(message.text());
-      const client = clients.get(peer.id);
+    const data = JSON.parse(message.text());
 
-      switch (data.type) {
-        case "authenticate":
-          await handleAuthentication(peer, data);
-          break;
-        case "join_room":
-          await handleJoinRoom(peer, data);
-          break;
-        case "leave_room":
-          await handleLeaveRoom(peer, data);
-          break;
-        case "send_message":
-          await handleSendMessage(peer, data);
-          break;
-        case "typing":
-          await handleTyping(peer, data);
-          break;
-        case "stop_typing":
-          await handleStopTyping(peer, data);
-          break;
-        case "mark_read":
-          await handleMarkRead(peer, data);
-          break;
-      }
-    } catch (error) {
-      console.error("WebSocket message error:", error);
-      peer.send(
-        JSON.stringify({
-          type: "error",
-          message: "Invalid message format",
-        }),
-      );
-    }
-  },
-
-  close(peer) {
-    console.log("Client disconnected:", peer.id);
-    const client = clients.get(peer.id);
-
-    if (client) {
-      // Leave all rooms
-      client.rooms.forEach((room) => {
-        broadcastToRoom(
-          room,
-          {
-            type: "user_left",
-            userId: client.userId,
-          },
-          peer.id,
+    if (data.type === "auth") {
+      try {
+        // In a real app, you would validate the token
+        // For now, we trust the userId sent from the client
+        const userId = data.userId;
+        clients.set(userId, peer);
+        console.log(`[ws] User ${userId} authenticated`);
+        peer.send(JSON.stringify({ type: "authed", success: true }));
+      } catch (e) {
+        peer.send(
+          JSON.stringify({
+            type: "authed",
+            success: false,
+            error: "Invalid token",
+          }),
         );
+        peer.close();
+      }
+      return;
+    }
+
+    // All other messages require an authenticated user
+    const userId = getUserIdFromPeer(peer);
+    if (!userId) {
+      return; // Ignore messages from unauthenticated peers
+    }
+
+    if (data.type === "join") {
+      const { errandId, otherUserId } = data;
+      const conversationId = getConversationId(userId, otherUserId, errandId);
+
+      // Subscribe peer to the conversation room
+      if (!rooms.has(conversationId)) {
+        rooms.set(conversationId, new Set());
+      }
+      rooms.get(conversationId)!.add(userId);
+
+      console.log(`[ws] User ${userId} joined room ${conversationId}`);
+
+      // Fetch and send message history
+      const messages = await prisma.message.findMany({
+        where: {
+          errandId,
+          OR: [
+            { senderId: userId, recipientId: otherUserId },
+            { senderId: otherUserId, recipientId: userId },
+          ],
+        },
+        orderBy: { createdAt: "asc" },
+        take: 50,
+      });
+
+      peer.send(JSON.stringify({ type: "history", conversationId, messages }));
+    }
+
+    if (data.type === "send") {
+      const { errandId, recipientId, message: text } = data;
+      const conversationId = getConversationId(userId, recipientId, errandId);
+
+      const newMessage = await prisma.message.create({
+        data: {
+          errandId,
+          senderId: userId,
+          recipientId,
+          message: text,
+        },
+      });
+
+      broadcast(conversationId, {
+        type: "message",
+        message: newMessage,
       });
     }
 
-    clients.delete(peer.id);
+    if (data.type === "typing") {
+      const { conversationId } = data;
+      broadcast(conversationId, { type: "typing", userId }, userId);
+    }
   },
 });
 
-async function handleAuthentication(peer, data) {
-  const client = clients.get(peer.id);
-  if (client) {
-    client.userId = data.userId;
-
-    peer.send(
-      JSON.stringify({
-        type: "authenticated",
-        userId: data.userId,
-      }),
-    );
-  }
-}
-
-async function handleJoinRoom(peer, data) {
-  const client = clients.get(peer.id);
-  if (!client) return;
-
-  const { room, userId } = data;
-  client.rooms.add(room);
-  client.userId = userId;
-
-  // Load recent messages from Redis
-  const recentMessages = await redis.lrange(`chat:room:${room}`, 0, 49);
-  const messages = recentMessages.reverse().map((msg) => JSON.parse(msg));
-  const errandId = (room as string).split(":")[0];
-
-  // Load conversation history from database if Redis is empty
-  if (messages.length === 0) {
-    try {
-      const dbMessages = await prisma.message.findMany({
-        where: { errandId: errandId },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-        include: {
-          sender: { select: { id: true, fullName: true, avatarUrl: true } },
-          recipient: { select: { id: true, fullName: true, avatarUrl: true } },
-        },
-      });
-
-      // Cache in Redis for future requests
-      const pipeline = redis.pipeline();
-      dbMessages.reverse().forEach((msg) => {
-        pipeline.lpush(
-          `chat:room:${room}`,
-          JSON.stringify({
-            id: msg.id,
-            errandId: msg.errandId,
-            senderId: msg.senderId,
-            recipientId: msg.recipientId,
-            message: msg.message,
-            read: msg.read,
-            createdAt: msg.createdAt.toISOString(),
-            sender: msg.sender,
-          }),
-        );
-      });
-      pipeline.ltrim(`chat:room:${room}`, 0, 99); // Keep last 100 messages
-      await pipeline.exec();
-
-      messages.push(
-        ...dbMessages.map((msg) => ({
-          id: msg.id,
-          errandId: msg.errandId,
-          senderId: msg.senderId,
-          recipientId: msg.recipientId,
-          message: msg.message,
-          read: msg.read,
-          createdAt: msg.createdAt.toISOString(),
-          sender: msg.sender,
-        })),
-      );
-    } catch (error) {
-      console.error("Failed to load messages from database:", error);
+function getUserIdFromPeer(peer: Peer): string | undefined {
+  for (const [userId, clientPeer] of clients.entries()) {
+    if (clientPeer === peer) {
+      return userId;
     }
   }
-
-  peer.send(
-    JSON.stringify({
-      type: "conversation_history",
-      room,
-      messages,
-      hasMore: messages.length === 50,
-    }),
-  );
-
-  // Notify others in room
-  broadcastToRoom(
-    room,
-    {
-      type: "user_joined",
-      userId,
-      room,
-    },
-    peer.id,
-  );
+  return undefined;
 }
 
-async function handleLeaveRoom(peer, data) {
-  const client = clients.get(peer.id);
-  if (!client) return;
-
-  const { room } = data;
-  client.rooms.delete(room);
-
-  broadcastToRoom(
-    room,
-    {
-      type: "user_left",
-      userId: client.userId,
-      room,
-    },
-    peer.id,
-  );
-}
-
-async function handleSendMessage(peer, data) {
-  const client = clients.get(peer.id);
-  if (!client) return;
-
-  const { message } = data;
-  const room = message.errandId;
-
-  try {
-    // Save to database
-    const savedMessage = await prisma.message.create({
-      data: {
-        errandId: message.errandId,
-        senderId: message.senderId,
-        recipientId: message.recipientId,
-        message: message.message,
-      },
-      include: {
-        sender: {
-          omit: {
-            password: true,
-          },
-        },
-      },
-    });
-
-    const messageData = {
-      id: savedMessage.id,
-      errandId: savedMessage.errandId,
-      senderId: savedMessage.senderId,
-      recipientId: savedMessage.recipientId,
-      message: savedMessage.message,
-      read: savedMessage.read,
-      createdAt: savedMessage.createdAt.toISOString(),
-      sender: savedMessage.sender,
-      status: "sent",
-    };
-
-    // Cache in Redis
-    await redis.lpush(`chat:room:${room}`, JSON.stringify(messageData));
-    await redis.ltrim(`chat:room:${room}`, 0, 99);
-
-    // Broadcast to all clients in the room
-    broadcastToRoom(room, {
-      type: "new_message",
-      message: messageData,
-    });
-
-    // Send delivery confirmation to sender
-    peer.send(
-      JSON.stringify({
-        type: "message_sent",
-        tempId: message.id,
-        message: messageData,
-      }),
-    );
-  } catch (error) {
-    console.error("Failed to save message:", error);
-    peer.send(
-      JSON.stringify({
-        type: "message_error",
-        tempId: message.id,
-        error: "Failed to send message",
-      }),
-    );
+function broadcast(conversationId: string, data: any, excludeUserId?: string) {
+  const userIds = rooms.get(conversationId);
+  if (userIds) {
+    const message = JSON.stringify(data);
+    for (const userId of userIds) {
+      if (userId !== excludeUserId) {
+        const peer = clients.get(userId);
+        if (peer) {
+          peer.send(message);
+        }
+      }
+    }
   }
-}
-
-async function handleTyping(peer, data) {
-  const client = clients.get(peer.id);
-  if (!client) return;
-
-  const { room } = data;
-
-  broadcastToRoom(
-    room,
-    {
-      type: "user_typing",
-      userId: client.userId,
-      room,
-    },
-    peer.id,
-  );
-}
-
-async function handleStopTyping(peer, data) {
-  const client = clients.get(peer.id);
-  if (!client) return;
-
-  const { room } = data;
-
-  broadcastToRoom(
-    room,
-    {
-      type: "user_stop_typing",
-      userId: client.userId,
-      room,
-    },
-    peer.id,
-  );
-}
-
-async function handleMarkRead(peer, data) {
-  const { messageId } = data;
-
-  try {
-    await prisma.message.update({
-      where: { id: messageId },
-      data: { read: true },
-    });
-
-    // Notify sender that message was read
-    const message = await prisma.message.findUnique({
-      where: { id: messageId },
-    });
-
-    if (message) {
-      broadcastToUser(message.senderId, {
-        type: "message_read",
-        messageId,
-        readBy: data.userId,
-      });
-    }
-  } catch (error) {
-    console.error("Failed to mark message as read:", error);
-  }
-}
-
-function broadcastToRoom(room, data, excludePeerId = null) {
-  const message = JSON.stringify(data);
-
-  clients.forEach((client, peerId) => {
-    if (peerId !== excludePeerId && client.rooms.has(room)) {
-      client.peer.send(message);
-    }
-  });
-}
-
-function broadcastToUser(userId, data) {
-  const message = JSON.stringify(data);
-
-  clients.forEach((client) => {
-    if (client.userId === userId) {
-      client.peer.send(message);
-    }
-  });
 }

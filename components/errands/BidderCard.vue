@@ -11,6 +11,7 @@ type BidWithRunner = Prisma.BidGetPayload<{ include: { runner: true } }>;
 const props = defineProps<{
   bid: BidWithRunner;
   isRequester?: boolean;
+  currency?: string;
 }>();
 
 // Emits definition
@@ -23,7 +24,8 @@ const emit = defineEmits<{
 const router = useRouter();
 
 // Utility functions
-const formatRating = (rating: number) => {
+const formatRating = (rating: number | null) => {
+  if (rating === null) return "N/A";
   return rating.toFixed(1);
 };
 
@@ -33,6 +35,10 @@ const formatCurrency = (amount: number, currency: string) => {
     currency: currency,
   }).format(amount);
 };
+
+// Mock data, replace with real data when available
+const runnerRating = 4.8;
+const runnerCompletedErrands = 23;
 
 // Computed properties
 const bidStatusVariant = computed(() => {
@@ -47,12 +53,12 @@ const bidStatusVariant = computed(() => {
 });
 
 const handleContactBidder = () => {
-  router.push(`/messages/${props.bid.runnerId}`);
+  navigateTo(`/dashboard/messages?new=${props.bid.runnerId}`);
 };
 
 // Computed for completed errands text
 const completedErrandsText = computed(() => {
-  return `1 completed`;
+  return `${runnerCompletedErrands} completed`;
 });
 </script>
 
@@ -81,7 +87,7 @@ const completedErrandsText = computed(() => {
         <div class="flex items-center mt-1">
           <StarIcon class="h-4 w-4 text-yellow-500 mr-1" />
           <span class="text-sm font-medium mr-2">
-            {{ formatRating(1) }}
+            {{ formatRating(runnerRating) }}
           </span>
           <span class="text-sm text-muted-foreground">
             {{ completedErrandsText }}
@@ -94,44 +100,55 @@ const completedErrandsText = computed(() => {
       </div>
     </CardHeader>
 
-    <CardContent class="pb-2">
-      <div class="grid grid-cols-2 gap-4 mb-3">
+    <CardContent class="pb-2 space-y-3">
+      <div class="grid grid-cols-2 gap-4">
         <div>
           <p class="text-sm font-medium">Bid Amount</p>
-          <p class="text-base">
-            {{ formatCurrency(parseFloat(bid.price.toString()), "Kes") }}
+          <p class="text-base font-semibold">
+            {{
+              formatCurrency(
+                parseFloat(bid.price.toString()),
+                currency || "KES",
+              )
+            }}
           </p>
         </div>
         <div>
           <p class="text-sm font-medium">Estimated Time</p>
-          <p class="text-base">
+          <p class="text-base font-semibold">
             {{
-              `${new Date(bid.estimatedCompletionTime ?? "").toDateString()} - ${new Date(bid.estimatedCompletionTime ?? "").toLocaleTimeString()}`
+              bid.estimatedCompletionTime
+                ? new Date(bid.estimatedCompletionTime).toLocaleString()
+                : "Not specified"
             }}
           </p>
         </div>
       </div>
 
-      <div>
+      <div v-if="bid.experienceDetails">
         <p class="text-sm font-medium mb-1">Message</p>
-        <p class="text-sm text-muted-foreground">{{ bid.experienceDetails }}</p>
+        <p class="text-sm text-muted-foreground p-2 bg-muted rounded">
+          {{ bid.experienceDetails }}
+        </p>
       </div>
-      <div>
+      <div v-if="bid.notes">
         <p class="text-sm font-medium mb-1">Notes</p>
-        <p class="text-sm text-muted-foreground">{{ bid.notes }}</p>
+        <p class="text-sm text-muted-foreground p-2 bg-muted rounded">
+          {{ bid.notes }}
+        </p>
       </div>
     </CardContent>
 
     <CardFooter class="pt-2">
       <template v-if="isRequester && bid.status === 'pending'">
-        <div class="flex gap-4">
+        <div class="flex gap-4 w-full">
           <NuxtLink
             :to="`/dashboard/errands/${bid.errandId}/bids/${bid.id}/accept`"
             :class="
               buttonVariants({
                 variant: 'default',
                 size: 'sm',
-                class: 'flex-1 flex items-center justify-center gap-2',
+                class: 'flex-1 flex items-center justify-center gap-2 group',
               })
             "
             aria-label="Accept bid"
@@ -140,7 +157,7 @@ const completedErrandsText = computed(() => {
             <span
               class="transition-transform duration-300 group-hover:rotate-12 group-hover:scale-125"
             >
-              <Icon name="mdi:emoji-happy" class="text-yellow-500 h-6 w-6" />
+              <Icon name="mdi:thumb-up-outline" class="h-5 w-5" />
             </span>
           </NuxtLink>
 
@@ -148,7 +165,7 @@ const completedErrandsText = computed(() => {
             :to="`/dashboard/errands/${bid.errandId}/bids/${bid.id}/reject`"
             :class="
               buttonVariants({
-                variant: 'outline',
+                variant: 'destructive',
                 size: 'sm',
                 class: 'flex-1 flex items-center justify-center gap-2 group',
               })
@@ -159,7 +176,7 @@ const completedErrandsText = computed(() => {
             <span
               class="transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-125"
             >
-              <Icon name="mdi:emoji-sad" class="text-yellow-500 h-6 w-6" />
+              <Icon name="mdi:thumb-down-outline" class="h-5 w-5" />
             </span>
           </NuxtLink>
         </div>

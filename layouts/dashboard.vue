@@ -1,15 +1,13 @@
 <script setup lang="ts">
 const isMobile = useIsMobile();
-const links = [
+const authStore = useAuthStore();
+const userRole = computed(() => authStore.user?.primaryRole);
+
+const requesterLinks = [
   {
     name: "Dashboard",
     href: "/dashboard",
     icon: "mdi:home",
-  },
-  {
-    name: "Categories",
-    href: "/dashboard/categories",
-    icon: "mdi:category",
   },
   {
     name: "My Errands",
@@ -17,21 +15,50 @@ const links = [
     icon: "arcticons:jobstreet",
   },
   {
+    name: "Post Errand",
+    href: "/errands/new",
+    icon: "mdi:plus-box",
+  },
+  {
+    name: "Messages",
+    href: "/dashboard/messages",
+    icon: "mdi:message",
+  },
+];
+
+const runnerLinks = [
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: "mdi:home",
+  },
+  {
+    name: "Find Errands",
+    href: "/errands",
+    icon: "mdi:magnify",
+  },
+  {
+    name: "My Bids",
+    href: "/dashboard/bids",
+    icon: "mdi:gavel",
+  },
+  {
     name: "Messages",
     href: "/dashboard/messages",
     icon: "mdi:message",
   },
   {
-    name: "Notifications",
-    href: "/dashboard/notifications",
-    icon: "mdi:notifications",
-  },
-  {
-    name: "Statitics",
-    href: "/statistics",
-    icon: "mdi:graph",
+    name: "Payouts",
+    href: "/dashboard/payouts",
+    icon: "mdi:cash-multiple",
   },
 ];
+
+const links = computed(() => {
+  if (userRole.value === "runner") return runnerLinks;
+  return requesterLinks;
+});
+
 const settingsLinks = [
   {
     name: "My Profile",
@@ -43,11 +70,6 @@ const settingsLinks = [
     href: "/dashboard/settings",
     icon: "mdi:settings",
   },
-  {
-    name: "Logout",
-    href: "/dashboard/logout",
-    icon: "mdi:logout",
-  },
 ];
 </script>
 <template>
@@ -55,16 +77,16 @@ const settingsLinks = [
     <aside class="hidden md:block w-64 border-r bg-card overflow-y-auto">
       <LayoutDashboardSideBar :links="links" :settings-links="settingsLinks" />
     </aside>
-    <div class="flex-1">
+    <div class="flex-1 flex flex-col">
       <template v-if="isMobile">
         <header class="sticky top-0 z-10 border-b bg-background p-4">
           <div class="flex justify-between items-center">
-            <NuxtLink to="/" class="font-bold text-xl text-primary-400">
+            <NuxtLink to="/" class="font-bold text-xl text-primary">
               Mashughuli
             </NuxtLink>
 
             <Sheet>
-              <SheetTrigger>
+              <SheetTrigger as-child>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -88,11 +110,11 @@ const settingsLinks = [
           </div>
         </header>
       </template>
-      <div>
+      <div v-else>
         <LayoutAppDashboardHeader />
       </div>
 
-      <main class="p-4 md:p-6">
+      <main class="p-4 md:p-6 flex-1">
         <slot />
       </main>
     </div>

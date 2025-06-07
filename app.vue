@@ -2,7 +2,13 @@
 const route = useRoute();
 
 const layout = computed(() => {
-  return route.path.startsWith("/dashboard") ? "dashboard" : "default";
+  if (route.path.startsWith("/admin")) {
+    return "admin";
+  }
+  if (route.path.startsWith("/dashboard")) {
+    return "dashboard";
+  }
+  return "default";
 });
 </script>
 <template>

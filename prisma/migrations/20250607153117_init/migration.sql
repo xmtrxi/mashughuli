@@ -23,7 +23,7 @@ CREATE TYPE "BidStatus" AS ENUM ('pending', 'accepted', 'rejected', 'expired');
 CREATE TYPE "PointsTransactionType" AS ENUM ('earned', 'spent', 'expired', 'bonus');
 
 -- CreateEnum
-CREATE TYPE "PaymentMethodType" AS ENUM ('credit_card', 'debit_card', 'paypal', 'bank_transfer', 'other');
+CREATE TYPE "PaymentMethodType" AS ENUM ('credit_card', 'debit_card', 'mpesa', 'other');
 
 -- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('pending', 'completed', 'failed', 'refunded');
@@ -36,6 +36,9 @@ CREATE TYPE "DisputeStatus" AS ENUM ('open', 'under_review', 'resolved', 'escala
 
 -- CreateEnum
 CREATE TYPE "ResolutionType" AS ENUM ('refund', 'partial_refund', 'no_refund', 'other');
+
+-- CreateEnum
+CREATE TYPE "MessageStatus" AS ENUM ('sending', 'sent', 'delivered', 'read');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -50,7 +53,7 @@ CREATE TABLE "users" (
     "categories" JSONB,
     "password" TEXT NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -64,7 +67,7 @@ CREATE TABLE "runner_verifications" (
     "identity_verified_at" TIMESTAMPTZ,
     "verification_notes" TEXT,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "runner_verifications_pkey" PRIMARY KEY ("id")
 );
@@ -82,7 +85,7 @@ CREATE TABLE "addresses" (
     "longitude" DECIMAL(11,8),
     "is_default" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "addresses_pkey" PRIMARY KEY ("id")
 );
@@ -95,7 +98,7 @@ CREATE TABLE "errand_categories" (
     "icon_name" TEXT,
     "active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "errand_categories_pkey" PRIMARY KEY ("id")
 );
@@ -122,7 +125,7 @@ CREATE TABLE "errands" (
     "status" "ErrandStatus" NOT NULL DEFAULT 'draft',
     "visibility" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "errands_pkey" PRIMARY KEY ("id")
 );
@@ -151,7 +154,7 @@ CREATE TABLE "bids" (
     "experience_details" TEXT,
     "status" "BidStatus" NOT NULL DEFAULT 'pending',
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "bids_pkey" PRIMARY KEY ("id")
 );
@@ -164,6 +167,7 @@ CREATE TABLE "messages" (
     "recipient_id" UUID NOT NULL,
     "message" TEXT NOT NULL,
     "read" BOOLEAN NOT NULL DEFAULT false,
+    "status" "MessageStatus" NOT NULL DEFAULT 'sent',
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "messages_pkey" PRIMARY KEY ("id")
@@ -189,7 +193,7 @@ CREATE TABLE "points" (
     "points_earned" INTEGER NOT NULL DEFAULT 0,
     "points_spent" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "points_pkey" PRIMARY KEY ("id")
 );
@@ -241,7 +245,7 @@ CREATE TABLE "payment_methods" (
     "provider_id" TEXT,
     "expires_at" TIMESTAMPTZ,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "payment_methods_pkey" PRIMARY KEY ("id")
 );
@@ -258,9 +262,25 @@ CREATE TABLE "transactions" (
     "status" "PaymentStatus" NOT NULL DEFAULT 'pending',
     "transaction_reference" TEXT,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "transactions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "payouts" (
+    "id" UUID NOT NULL DEFAULT uuid_generate_v4(),
+    "errand_id" UUID NOT NULL,
+    "runner_id" UUID NOT NULL,
+    "transaction_id" UUID NOT NULL,
+    "amount" DECIMAL(10,2) NOT NULL,
+    "status" "PaymentStatus" NOT NULL DEFAULT 'pending',
+    "payout_reference" TEXT,
+    "processed_at" TIMESTAMPTZ,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
+
+    CONSTRAINT "payouts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -290,7 +310,7 @@ CREATE TABLE "notification_settings" (
     "review_alert" BOOLEAN NOT NULL DEFAULT true,
     "marketing_communications" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "notification_settings_pkey" PRIMARY KEY ("id")
 );
@@ -310,7 +330,7 @@ CREATE TABLE "disputes" (
     "resolved_at" TIMESTAMPTZ,
     "resolved_by" UUID,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "disputes_pkey" PRIMARY KEY ("id")
 );
@@ -334,7 +354,7 @@ CREATE TABLE "system_settings" (
     "setting_value" TEXT,
     "setting_description" TEXT,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "system_settings_pkey" PRIMARY KEY ("id")
 );
@@ -389,6 +409,9 @@ CREATE UNIQUE INDEX "badges_name_key" ON "badges"("name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_badges_user_id_badge_id_key" ON "user_badges"("user_id", "badge_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "payouts_transaction_id_key" ON "payouts"("transaction_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "notification_settings_user_id_key" ON "notification_settings"("user_id");
@@ -473,6 +496,15 @@ ALTER TABLE "transactions" ADD CONSTRAINT "transactions_payee_id_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_payment_method_id_fkey" FOREIGN KEY ("payment_method_id") REFERENCES "payment_methods"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "payouts" ADD CONSTRAINT "payouts_errand_id_fkey" FOREIGN KEY ("errand_id") REFERENCES "errands"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "payouts" ADD CONSTRAINT "payouts_runner_id_fkey" FOREIGN KEY ("runner_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "payouts" ADD CONSTRAINT "payouts_transaction_id_fkey" FOREIGN KEY ("transaction_id") REFERENCES "transactions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

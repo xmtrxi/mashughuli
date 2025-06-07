@@ -1,15 +1,6 @@
 <script setup lang="ts">
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
-
-import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { toast } from "vue-sonner";
 import { createBidSchema } from "~/shared/schemas/errands.schema";
 import type { ApiResponse } from "~/types";
@@ -18,15 +9,16 @@ import type { Bid } from "@prisma/client";
 // Define props with TypeScript
 interface BidFormProps {
   errandId: string;
-  minBudget: number;
-  maxBudget: number;
-  currency: string;
+  minBudget: number | null;
+  maxBudget: number | null;
+  currency?: string;
   onBidSubmitted?: () => void;
 }
 
-const props = defineProps<BidFormProps>();
+const props = withDefaults(defineProps<BidFormProps>(), {
+  currency: "KES",
+});
 const route = useRoute();
-const errandId = route.params.id;
 
 // Emits
 const emit = defineEmits<{
@@ -40,11 +32,11 @@ const isSubmitting = ref(false);
 const { handleSubmit, errors, resetForm, values } = useForm({
   validationSchema: toTypedSchema(createBidSchema),
   initialValues: {
-    price: props.maxBudget,
+    price: props.maxBudget ?? 0,
     estimatedCompletionTime: "",
     notes: "",
     experienceDetails: "",
-    errandId: errandId as string,
+    errandId: props.errandId,
   },
 });
 
@@ -64,36 +56,35 @@ const formatCurrency = (value: string | number) => {
 // Bid info calculation
 const bidInfo = computed(() => {
   const current = parseFloat((values.price ?? 0).toString());
-  const min = props.minBudget;
-  const max = props.maxBudget;
+  const min = props.minBudget ?? 0;
+  const max = props.maxBudget ?? Infinity;
 
-  if (current < min) {
+  if (current < min && props.minBudget) {
     return {
       message: `Your bid is below the minimum budget of ${formatCurrency(min)}`,
       color: "text-yellow-600",
     };
-  } else if (current > max) {
+  } else if (current > max && props.maxBudget) {
     return {
       message: `Your bid exceeds the maximum budget of ${formatCurrency(max)}`,
       color: "text-yellow-600",
     };
   } else {
     return {
-      message: "Your bid is within the budget range",
+      message: "Your bid seems reasonable.",
       color: "text-green-600",
     };
   }
 });
 
-const onSubmit = handleSubmit(async (values) => {
-  values.errandId = errandId as string;
+const onSubmit = handleSubmit(async (formValues) => {
   isSubmitting.value = true;
   try {
-    const { data, success } = await useApiRequest<ApiResponse<Bid>>(
+    const { data } = await useApiRequest<ApiResponse<Bid>>(
       "/api/errands/bids",
       {
         body: {
-          ...values,
+          ...formValues,
         },
         method: "POST",
       },
@@ -104,14 +95,15 @@ const onSubmit = handleSubmit(async (values) => {
 
       // Emit event or call callback
       emit("bid-submitted");
-    }
-
-    if (props.onBidSubmitted) {
-      props.onBidSubmitted();
+      if (props.onBidSubmitted) {
+        props.onBidSubmitted();
+      }
     }
   } catch (error: any) {
     console.error("Error submitting bid:", error.data);
-    toast.error("Failed to submit your bid. Please try again.");
+    toast.error(
+      error.data?.message || "Failed to submit your bid. Please try again.",
+    );
   } finally {
     isSubmitting.value = false;
   }
@@ -121,9 +113,10 @@ const onSubmit = handleSubmit(async (values) => {
 <template>
   <div class="p-6 bg-card rounded-lg border shadow-sm">
     <h3 class="text-xl font-semibold mb-4">Submit Your Bid</h3>
-    <p class="mb-4 text-sm text-muted-foreground">
-      Budget range: {{ formatCurrency(minBudget) }} -
-      {{ formatCurrency(maxBudget) }}
+    <p v-if="minBudget || maxBudget" class="mb-4 text-sm text-muted-foreground">
+      Budget range:
+      {{ minBudget ? formatCurrency(minBudget) : "N/A" }} -
+      {{ maxBudget ? formatCurrency(maxBudget) : "N/A" }}
     </p>
 
     <form @submit.prevent="onSubmit" class="space-y-4">
@@ -133,10 +126,10 @@ const onSubmit = handleSubmit(async (values) => {
           <FormControl>
             <Input type="number" :min="0" step="0.01" v-bind="componentField" />
           </FormControl>
-          <p :class="['text-xs', bidInfo.color]">
+          <p v-if="values.price" :class="['text-xs', bidInfo.color]">
             {{ bidInfo.message }}
           </p>
-          <FormMessage>{{ errors.price }}</FormMessage>
+          <FormMessage />
         </FormItem>
       </FormField>
 
@@ -151,9 +144,9 @@ const onSubmit = handleSubmit(async (values) => {
             />
           </FormControl>
           <FormDescription>
-            How long will it take you to complete this errand?
+            When do you estimate you will complete this errand?
           </FormDescription>
-          <FormMessage>{{ errors.estimatedCompletionTime }}</FormMessage>
+          <FormMessage />
         </FormItem>
       </FormField>
 
@@ -170,7 +163,7 @@ const onSubmit = handleSubmit(async (values) => {
           <FormDescription>
             Include relevant experience and any questions you have.
           </FormDescription>
-          <FormMessage>{{ errors.experienceDetails }}</FormMessage>
+          <FormMessage />
         </FormItem>
       </FormField>
 
@@ -179,18 +172,21 @@ const onSubmit = handleSubmit(async (values) => {
           <FormLabel>Extra Notes</FormLabel>
           <FormControl>
             <Textarea
-              placeholder="Other notes to take on"
+              placeholder="Any other important notes for the requester."
               :rows="4"
               v-bind="componentField"
             />
           </FormControl>
-          <FormDescription> Other important notes </FormDescription>
-          <FormMessage>{{ errors.notes }}</FormMessage>
+          <FormMessage />
         </FormItem>
       </FormField>
 
       <Button type="submit" class="w-full" :disabled="isSubmitting">
-        {{ isSubmitting ? "Submitting..." : "Submit Bid" }}
+        <span v-if="isSubmitting" class="flex items-center">
+          <Icon name="mdi:loading" class="animate-spin mr-2" />
+          Submitting...
+        </span>
+        <span v-else>Submit Bid</span>
       </Button>
     </form>
   </div>
