@@ -66,8 +66,7 @@ enum PointsTransactionType {
 enum PaymentMethodType {
   credit_card
   debit_card
-  paypal
-  bank_transfer
+  mpesa
   other
 }
 
@@ -116,7 +115,7 @@ model User {
   categories  Json?
   password    String
   createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime   @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   addresses            Address[]
@@ -142,6 +141,7 @@ model User {
   resolvedDisputes     Dispute[]             @relation("ResolvedDisputes")
   activityLogs         UserActivityLog[]
   uploadedFiles        ErrandFile[]
+  payouts              Payout[]
 
   @@map("users")
 }
@@ -154,7 +154,7 @@ model RunnerVerification {
   identityVerifiedAt    DateTime?          @map("identity_verified_at") @db.Timestamptz
   verificationNotes     String?            @map("verification_notes")
   createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt             DateTime           @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt             DateTime           @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   runner User @relation(fields: [runnerId], references: [id], onDelete: Cascade)
@@ -174,7 +174,7 @@ model Address {
   longitude    Decimal? @db.Decimal(11, 8)
   isDefault    Boolean  @default(false) @map("is_default")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -190,7 +190,7 @@ model ErrandCategory {
   iconName    String?  @map("icon_name")
   active      Boolean  @default(true)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   errands Errand[]
@@ -219,7 +219,7 @@ model Errand {
   status         ErrandStatus  @default(draft)
   visibility     Boolean       @default(true)
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime      @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   requester          User                @relation("RequesterErrands", fields: [requesterId], references: [id], onDelete: Cascade)
@@ -232,6 +232,7 @@ model Errand {
   files              ErrandFile[]
   transactions       Transaction[]
   disputes           Dispute[]
+  payouts            Payout[]
   pointsTransactions PointsTransaction[]
 
   @@index([status])
@@ -267,7 +268,7 @@ model Bid {
   experienceDetails       String?   @map("experience_details")
   status                  BidStatus @default(pending)
   createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt               DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   errand Errand @relation(fields: [errandId], references: [id], onDelete: Cascade)
@@ -331,7 +332,7 @@ model Points {
   pointsEarned Int      @default(0) @map("points_earned")
   pointsSpent  Int      @default(0) @map("points_spent")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -395,7 +396,7 @@ model PaymentMethod {
   providerId   String?           @map("provider_id")
   expiresAt    DateTime?         @map("expires_at") @db.Timestamptz
   createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime          @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -415,15 +416,36 @@ model Transaction {
   status               PaymentStatus @default(pending)
   transactionReference String?       @map("transaction_reference")
   createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt            DateTime      @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   errand        Errand         @relation(fields: [errandId], references: [id], onDelete: Cascade)
   payer         User           @relation("PayerTransactions", fields: [payerId], references: [id], onDelete: Cascade)
   payee         User           @relation("PayeeTransactions", fields: [payeeId], references: [id], onDelete: Cascade)
   paymentMethod PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
+  payout        Payout?
 
   @@map("transactions")
+}
+
+model Payout {
+  id              String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  errandId        String        @map("errand_id") @db.Uuid
+  runnerId        String        @map("runner_id") @db.Uuid
+  transactionId   String        @unique @map("transaction_id") @db.Uuid
+  amount          Decimal       @db.Decimal(10, 2)
+  status          PaymentStatus @default(pending)
+  payoutReference String?       @map("payout_reference")
+  processedAt     DateTime?     @map("processed_at") @db.Timestamptz
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  errand      Errand      @relation(fields: [errandId], references: [id])
+  runner      User        @relation(fields: [runnerId], references: [id])
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+
+  @@map("payouts")
 }
 
 model Notification {
@@ -454,7 +476,7 @@ model NotificationSettings {
   reviewAlert             Boolean  @default(true) @map("review_alert")
   marketingCommunications Boolean  @default(false) @map("marketing_communications")
   createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt               DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -476,7 +498,7 @@ model Dispute {
   resolvedAt      DateTime?       @map("resolved_at") @db.Timestamptz
   resolvedBy      String?         @map("resolved_by") @db.Uuid
   createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime        @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   errand      Errand @relation(fields: [errandId], references: [id], onDelete: Cascade)
@@ -508,7 +530,7 @@ model SystemSetting {
   settingValue       String?  @map("setting_value")
   settingDescription String?  @map("setting_description")
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@map("system_settings")
 }
