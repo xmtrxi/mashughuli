@@ -68,6 +68,7 @@
     "@types/node": "^22.15.30",
     "@vueuse/nuxt": "^13.3.0",
     "eslint-plugin-format": "^1.0.1",
-    "prisma": "6.9.0"
+    "prisma": "6.9.0",
+    "tsx": "^4.20.3"
   }
 }

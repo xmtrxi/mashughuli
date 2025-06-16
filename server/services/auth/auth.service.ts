@@ -4,7 +4,13 @@ import jwt from "jsonwebtoken";
 import prisma from "~/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 import type { H3Event } from "h3";
-import {objectInputType, objectOutputType, Writeable, z, ZodTypeAny} from "zod";
+import {
+  objectInputType,
+  objectOutputType,
+  Writeable,
+  z,
+  ZodTypeAny,
+} from "zod";
 import { userSchema } from "~/shared/schemas/auth.schema";
 
 const runtime = useRuntimeConfig();
@@ -17,6 +23,7 @@ const generateJwtToken = (user: User) => {
       email: user.email,
       phoneNumber: user.phoneNumber,
       fullName: user.fullName,
+      primaryRole: user.primaryRole,
     },
     jwtSecret,
     { expiresIn: "7d" },
@@ -74,16 +81,31 @@ export const loginUser = async (
   };
 };
 
-export const updateUser = async (userId: string, user: objectOutputType<{
-  email: z.string;
-  fullName: ZodString;
-  avatarUrl: ZodOptional<ZodString>;
-  phoneNumber: ZodString;
-  primaryRole: ZodEnum<Writeable<[string, string]>>;
-  password: ZodString;
-  bio: ZodString;
-  categories: ZodObject<{}, "strip", ZodTypeAny, objectOutputType<{}, ZodTypeAny, "strip">, objectInputType<{}, ZodTypeAny, "strip">>
-}, ZodType<any, any, any>, "strip"> | undefined) => {
+export const updateUser = async (
+  userId: string,
+  user:
+    | objectOutputType<
+        {
+          email: z.string;
+          fullName: ZodString;
+          avatarUrl: ZodOptional<ZodString>;
+          phoneNumber: ZodString;
+          primaryRole: ZodEnum<Writeable<[string, string]>>;
+          password: ZodString;
+          bio: ZodString;
+          categories: ZodObject<
+            {},
+            "strip",
+            ZodTypeAny,
+            objectOutputType<{}, ZodTypeAny, "strip">,
+            objectInputType<{}, ZodTypeAny, "strip">
+          >;
+        },
+        ZodType<any, any, any>,
+        "strip"
+      >
+    | undefined,
+) => {
   try {
     await prisma.user.update({
       where: {

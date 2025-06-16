@@ -2,6 +2,7 @@
 import type { Errand } from "@prisma/client";
 import type { ApiResponse } from "~/types";
 import { format } from "date-fns";
+import { buttonVariants } from "~/components/ui/button";
 
 definePageMeta({ layout: "admin" });
 

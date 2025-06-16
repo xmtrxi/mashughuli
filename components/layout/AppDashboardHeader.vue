@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { Bell, ChevronDown, User, Settings, LogOut } from "lucide-vue-next";
+import { NuxtLink } from "#components";
+import {
+  Bell,
+  ChevronDown,
+  User,
+  Settings,
+  LogOut,
+  HomeIcon,
+} from "lucide-vue-next";
 
 const authStore = useAuthStore();
 </script>
@@ -39,9 +47,21 @@ const authStore = useAuthStore();
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" class="bg-white">
-            <DropdownMenuItem>
+            <DropdownMenuItem :as="NuxtLink" to="/dashboard/profile">
               <User class="mr-2 h-4 w-4" />
               Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              v-if="
+                authStore.user &&
+                authStore.token &&
+                authStore.user.primaryRole == 'admin'
+              "
+              :as="NuxtLink"
+              to="/admin"
+            >
+              <HomeIcon class="mr-2 h-4 w-4" />
+              Admin Dashboard
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Settings class="mr-2 h-4 w-4" />

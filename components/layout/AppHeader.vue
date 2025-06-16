@@ -88,6 +88,23 @@ const authStore = useAuthStore();
             Join Now
           </NuxtLink>
           <NuxtLink
+            v-if="
+              authStore.user &&
+              authStore.token &&
+              authStore.user.primaryRole == 'admin'
+            "
+            to="/admin"
+            :class="
+              buttonVariants({
+                variant: 'default',
+                class:
+                  'hidden md:block px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition',
+              })
+            "
+          >
+            Admin Dashboard
+          </NuxtLink>
+          <NuxtLink
             v-if="authStore.user && authStore.token"
             to="/dashboard"
             :class="

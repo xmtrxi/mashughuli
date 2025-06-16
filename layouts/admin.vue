@@ -5,11 +5,7 @@ const adminLinks = [
   { name: "Overview", href: "/admin", icon: "mdi:view-dashboard" },
   { name: "Users", href: "/admin/users", icon: "mdi:account-group" },
   { name: "Errands", href: "/admin/errands", icon: "mdi:format-list-bulleted" },
-  {
-    name: "Categories",
-    href: "/dashboard/categories",
-    icon: "mdi:tag-multiple",
-  },
+  { name: "Categories", href: "/admin/categories", icon: "mdi:tag-multiple" },
   { name: "Disputes", href: "/admin/disputes", icon: "mdi:gavel" },
   { name: "Transactions", href: "/admin/transactions", icon: "mdi:cash" },
 ];
