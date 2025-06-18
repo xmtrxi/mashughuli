@@ -1,163 +1,122 @@
 import { Peer } from "crossws";
-import { useAuthUser } from "../services/auth/auth.service";
 import prisma from "~/lib/prisma";
+import { MessageStatus } from "@prisma/client";
 
-// In-memory store for active connections
-// Key: userId, Value: Peer
-const clients = new Map<string, Peer>();
-
-// In-memory store for room subscriptions
-// Key: conversationId, Value: Set<userId>
-const rooms = new Map<string, Set<string>>();
-
-// Function to generate a consistent conversation ID
-function getConversationId(userId1: string, userId2: string, errandId: string) {
-  const sortedIds = [userId1, userId2].sort();
-  return `${errandId}:${sortedIds[0]}:${sortedIds[1]}`;
+// This interface is still useful for attaching our own metadata to the peer
+interface PeerWithMetadata extends Peer {
+  userId?: string;
 }
 
 export default defineWebSocketHandler({
-  async open(peer) {
-    console.log("[ws] open", peer);
+  open(peer: PeerWithMetadata) {
+    console.log("[ws] open", peer.id);
   },
 
-  async close(peer) {
-    console.log("[ws] close", peer);
-    // Find the user and remove them from all rooms and the client list
-    let userIdToRemove: string | null = null;
-    for (const [userId, clientPeer] of clients.entries()) {
-      if (clientPeer === peer) {
-        userIdToRemove = userId;
-        break;
-      }
-    }
-    if (userIdToRemove) {
-      clients.delete(userIdToRemove);
-      rooms.forEach((users, conversationId) => {
-        if (users.has(userIdToRemove!)) {
-          users.delete(userIdToRemove!);
-          // Notify others in the room
-          broadcast(
-            conversationId,
-            {
-              type: "user_left",
-              userId: userIdToRemove,
-            },
-            userIdToRemove,
-          );
-        }
-      });
-    }
+  close(peer: PeerWithMetadata) {
+    console.log(`[ws] User ${peer.userId || peer.id} disconnected.`);
   },
 
-  async error(peer, error) {
-    console.log("[ws] error", peer, error);
+  error(peer: PeerWithMetadata, error) {
+    console.log(`[ws] error for ${peer.userId || peer.id}`, error);
   },
 
-  async message(peer, message) {
-    const data = JSON.parse(message.text());
+  async message(peer: PeerWithMetadata, message) {
+    try {
+      const data = JSON.parse(message.text());
 
-    if (data.type === "auth") {
-      try {
-        // In a real app, you would validate the token
-        // For now, we trust the userId sent from the client
-        const userId = data.userId;
-        clients.set(userId, peer);
-        console.log(`[ws] User ${userId} authenticated`);
+      // --- Authentication: Attach userId to the peer ---
+      if (data.type === "auth") {
+        peer.userId = data.userId;
+        console.log(`[ws] User ${peer.userId} authenticated`);
         peer.send(JSON.stringify({ type: "authed", success: true }));
-      } catch (e) {
+        return;
+      }
+
+      if (!peer.userId) return; // Guard for unauthenticated peers
+
+      // --- Joining a Conversation Room ---
+      if (data.type === "join") {
+        const { otherUserId } = data;
+        // The "room" is now a topic string that we subscribe to
+        const conversationId = getConversationId(peer.userId, otherUserId);
+
+        // Subscribe the peer to this conversation topic
+        peer.subscribe(conversationId);
+        console.log(`[ws] User ${peer.userId} subscribed to ${conversationId}`);
+
+        // Fetch and send message history directly to the peer who just joined
+        const messages = await prisma.message.findMany({
+          where: {
+            OR: [
+              { senderId: peer.userId, recipientId: otherUserId },
+              { senderId: otherUserId, recipientId: peer.userId },
+            ],
+          },
+          orderBy: { createdAt: "asc" },
+          take: 100,
+          include: { sender: { select: { avatarUrl: true } } },
+        });
         peer.send(
-          JSON.stringify({
-            type: "authed",
-            success: false,
-            error: "Invalid token",
-          }),
+          JSON.stringify({ type: "history", conversationId, messages }),
         );
-        peer.close();
+
+        // Mark messages as read and notify the other user
+        await prisma.message.updateMany({
+          where: {
+            recipientId: peer.userId,
+            senderId: otherUserId,
+            read: false,
+          },
+          data: { read: true, status: "read" },
+        });
+        peer.publish(conversationId, JSON.stringify({ type: "messages_read" }));
       }
-      return;
-    }
 
-    // All other messages require an authenticated user
-    const userId = getUserIdFromPeer(peer);
-    if (!userId) {
-      return; // Ignore messages from unauthenticated peers
-    }
+      // --- Sending a Message ---
+      if (data.type === "send") {
+        const { errandId, recipientId, message: text } = data;
+        const conversationId = getConversationId(peer.userId, recipientId);
 
-    if (data.type === "join") {
-      const { errandId, otherUserId } = data;
-      const conversationId = getConversationId(userId, otherUserId, errandId);
+        const newMessage = await prisma.message.create({
+          data: {
+            errandId,
+            senderId: peer.userId,
+            recipientId,
+            message: text,
+            status: "sent",
+          },
+          include: {
+            sender: { select: { id: true, fullName: true, avatarUrl: true } },
+          },
+        });
 
-      // Subscribe peer to the conversation room
-      if (!rooms.has(conversationId)) {
-        rooms.set(conversationId, new Set());
+        // Publish the new message to the conversation topic
+        // This will send it to both the sender and the recipient if they are subscribed
+        peer.publish(
+          conversationId,
+          JSON.stringify({ type: "message", message: newMessage }),
+        );
       }
-      rooms.get(conversationId)!.add(userId);
 
-      console.log(`[ws] User ${userId} joined room ${conversationId}`);
-
-      // Fetch and send message history
-      const messages = await prisma.message.findMany({
-        where: {
-          errandId,
-          OR: [
-            { senderId: userId, recipientId: otherUserId },
-            { senderId: otherUserId, recipientId: userId },
-          ],
-        },
-        orderBy: { createdAt: "asc" },
-        take: 50,
-      });
-
-      peer.send(JSON.stringify({ type: "history", conversationId, messages }));
-    }
-
-    if (data.type === "send") {
-      const { errandId, recipientId, message: text } = data;
-      const conversationId = getConversationId(userId, recipientId, errandId);
-
-      const newMessage = await prisma.message.create({
-        data: {
-          errandId,
-          senderId: userId,
-          recipientId,
-          message: text,
-        },
-      });
-
-      broadcast(conversationId, {
-        type: "message",
-        message: newMessage,
-      });
-    }
-
-    if (data.type === "typing") {
-      const { conversationId } = data;
-      broadcast(conversationId, { type: "typing", userId }, userId);
+      // --- Typing Indicator ---
+      if (data.type === "typing") {
+        const { recipientId } = data;
+        const conversationId = getConversationId(peer.userId, recipientId);
+        // Publish the typing event to the topic, excluding the sender themselves
+        peer.publish(
+          conversationId,
+          JSON.stringify({ type: "typing", userId: peer.userId }),
+          true,
+        );
+      }
+    } catch (e) {
+      console.error("[ws] message processing error", e);
     }
   },
 });
 
-function getUserIdFromPeer(peer: Peer): string | undefined {
-  for (const [userId, clientPeer] of clients.entries()) {
-    if (clientPeer === peer) {
-      return userId;
-    }
-  }
-  return undefined;
-}
-
-function broadcast(conversationId: string, data: any, excludeUserId?: string) {
-  const userIds = rooms.get(conversationId);
-  if (userIds) {
-    const message = JSON.stringify(data);
-    for (const userId of userIds) {
-      if (userId !== excludeUserId) {
-        const peer = clients.get(userId);
-        if (peer) {
-          peer.send(message);
-        }
-      }
-    }
-  }
+// A consistent way to generate a conversation ID from two user IDs
+function getConversationId(userId1: string, userId2: string): string {
+  const sortedIds = [userId1, userId2].sort();
+  return `conversation:${sortedIds[0]}:${sortedIds[1]}`;
 }

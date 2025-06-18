@@ -2,7 +2,7 @@
 import type { ApiResponse, ErrandWithRelationships } from "~/types";
 
 const route = useRoute();
-const { data, pending, error } = await useApiFetch<
+const { data, pending, error, refresh } = await useApiFetch<
   ApiResponse<ErrandWithRelationships>
 >(`/api/errands/${route.params.id}`);
 const errand = computed(() => data.value?.data);
@@ -18,6 +18,11 @@ const errand = computed(() => data.value?.data);
         The errand you are looking for does not exist or has been removed.
       </p>
     </div>
-    <ErrandsErrandViewer v-else :errand="errand" :show-bid-form="true" />
+    <ErrandsErrandViewer
+      v-else
+      :errand="errand"
+      :show-bid-form="true"
+      @bid-submitted="refresh()"
+    />
   </div>
 </template>

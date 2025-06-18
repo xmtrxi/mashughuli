@@ -6,6 +6,7 @@ const props = defineProps<{
   errand: ErrandWithRelationships;
   showBidForm: boolean;
 }>();
+const emits = defineEmits(["bid-submitted"]);
 
 const router = useRouter();
 
@@ -332,6 +333,7 @@ async function handleFileDispute() {
           :max-budget="parseFloat(errand.budgetMax?.toString() ?? '0')"
           :min-budget="parseFloat(errand.budgetMin?.toString() ?? '0')"
           currency="KES"
+          @bid-submitted="$emit('bid-submitted')"
         />
       </div>
     </div>

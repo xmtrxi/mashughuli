@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import "vue-sonner/style.css";
 const route = useRoute();
 
 const layout = computed(() => {
@@ -16,7 +17,7 @@ const layout = computed(() => {
     <div class="font-sans min-h-screen">
       <NuxtLoadingIndicator color="black" />
       <NuxtRouteAnnouncer />
-      <Toaster rich-colors position="top-center" />
+      <Toaster rich-colors />
       <NuxtLayout :name="layout">
         <NuxtPage />
       </NuxtLayout>

@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
-import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "~/stores/auth";
 import type { ApiResponse } from "~/types";
 import { toast } from "vue-sonner";
 
+// --- TYPE DEFINITIONS ---
 interface Message {
   id: string;
   senderId: string;
-  recipientId: string;
-  errandId: string;
   message: string;
   createdAt: string;
+  status: "sent" | "delivered" | "read";
+  sender: {
+    avatarUrl: string | null;
+  };
 }
 
 interface Conversation {
@@ -26,12 +27,11 @@ interface Conversation {
   unread: number;
 }
 
-// Composables
+// --- COMPOSABLES & STATE ---
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 
-// State
 const conversations = ref<Conversation[]>([]);
 const messages = ref<Message[]>([]);
 const activeConversationId = ref<string | null>(null);
@@ -45,9 +45,17 @@ const activeConversation = computed(() =>
   conversations.value.find((c) => c.id === activeConversationId.value),
 );
 const messagesContainer = ref<HTMLElement | null>(null);
+let typingTimeout: NodeJS.Timeout | null = null;
 
-// WebSocket Logic
+// --- WEBSOCKET LOGIC ---
 function connectWebSocket() {
+  if (
+    ws.value &&
+    (ws.value.readyState === WebSocket.OPEN ||
+      ws.value.readyState === WebSocket.CONNECTING)
+  )
+    return;
+
   const wsUrl = `ws://${window.location.host}/api/websocket`;
   ws.value = new WebSocket(wsUrl);
 
@@ -62,50 +70,16 @@ function connectWebSocket() {
 
   ws.value.onmessage = (event) => {
     const data = JSON.parse(event.data);
+
     switch (data.type) {
-      case "history":
-        if (data.conversationId === activeConversationId.value) {
-          messages.value = data.messages;
-          scrollToBottom();
-        }
-        break;
       case "message":
-        const convId = getConversationId(
-          data.message.senderId,
-          data.message.recipientId,
-          data.message.errandId,
-        );
-
-        // Update conversation list
-        const convIndex = conversations.value.findIndex((c) => c.id === convId);
-        if (convIndex > -1) {
-          conversations.value[convIndex].lastMessage = data.message.message;
-          conversations.value[convIndex].timestamp = data.message.createdAt;
-          if (
-            data.message.senderId !== currentUserId.value &&
-            convId !== activeConversationId.value
-          ) {
-            conversations.value[convIndex].unread++;
-          }
-          // Move updated conversation to the top
-          const updatedConv = conversations.value.splice(convIndex, 1)[0];
-          conversations.value.unshift(updatedConv);
-        }
-
-        // Add to active chat
-        if (convId === activeConversationId.value) {
-          messages.value.push(data.message);
-          scrollToBottom();
-        }
+        handleNewMessage(data.message);
         break;
       case "typing":
-        if (
-          data.userId !== currentUserId.value &&
-          data.conversationId === activeConversationId.value
-        ) {
-          isUserTyping.value = true;
-          setTimeout(() => (isUserTyping.value = false), 3000); // Typing indicator timeout
-        }
+        handleTypingIndicator(data);
+        break;
+      case "messages_read":
+        handleMessagesRead(data);
         break;
     }
   };
@@ -116,7 +90,64 @@ function connectWebSocket() {
   };
 }
 
-// Data Fetching
+function handleNewMessage(message: Message) {
+  const convId = getConversationId(
+    message.senderId,
+    message.recipientId,
+    message.errandId,
+  );
+
+  const convIndex = conversations.value.findIndex((c) => c.id === convId);
+  if (convIndex > -1) {
+    const conversation = conversations.value[convIndex];
+    conversation.lastMessage = message.message;
+    conversation.timestamp = message.createdAt;
+    if (
+      message.senderId !== currentUserId.value &&
+      convId !== activeConversationId.value
+    ) {
+      conversation.unread++;
+    }
+    const [updatedConv] = conversations.value.splice(convIndex, 1);
+    conversations.value.unshift(updatedConv);
+  } else {
+    // If conversation is brand new, refresh the list to get it
+    fetchConversations();
+  }
+
+  if (convId === activeConversationId.value) {
+    messages.value.push(message);
+    scrollToBottom();
+  }
+}
+
+function handleTypingIndicator(data: {
+  userId: string;
+  conversationId: string;
+}) {
+  if (
+    data.userId !== currentUserId.value &&
+    data.conversationId === activeConversationId.value
+  ) {
+    isUserTyping.value = true;
+    if (typingTimeout) clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      isUserTyping.value = false;
+    }, 3000);
+  }
+}
+
+function handleMessagesRead(data: { conversationId: string }) {
+  if (data.conversationId === activeConversationId.value) {
+    messages.value.forEach((msg) => {
+      if (msg.senderId === currentUserId.value) {
+        msg.status = "read";
+      }
+    });
+  }
+}
+
+// --- DATA FETCHING & STATE MANAGEMENT ---
 async function fetchConversations() {
   isLoadingConversations.value = true;
   try {
@@ -134,41 +165,39 @@ async function fetchConversations() {
 }
 
 async function selectConversation(conversationId: string) {
-  if (activeConversationId.value === conversationId) return;
+  if (
+    activeConversationId.value === conversationId &&
+    messages.value.length > 0
+  )
+    return;
 
   activeConversationId.value = conversationId;
-  if (route.params.id !== conversationId) {
-    router.push(`/dashboard/messages/${conversationId}`);
+  const currentPath = `/dashboard/messages/${conversationId}`;
+  if (route.fullPath !== currentPath) {
+    await router.push(currentPath);
   }
 
   isLoadingMessages.value = true;
   messages.value = [];
 
   const conversation = conversations.value.find((c) => c.id === conversationId);
-  if (conversation && ws.value?.readyState === WebSocket.OPEN) {
-    ws.value.send(
-      JSON.stringify({
-        type: "join",
-        errandId: conversation.errandId,
-        otherUserId: conversation.otherUserId,
-      }),
-    );
-    conversation.unread = 0; // Optimistically mark as read
-  } else if (ws.value?.readyState !== WebSocket.OPEN) {
-    // If WS is not open, fetch history via HTTP as a fallback
-    // This is a good practice for initial load.
-    await fetchHistory(conversationId);
+  if (conversation) {
+    await fetchHistory(conversation.otherUserId);
+    conversation.unread = 0;
+    if (ws.value?.readyState === WebSocket.OPEN) {
+      ws.value.send(
+        JSON.stringify({ type: "join", otherUserId: conversation.otherUserId }),
+      );
+    }
   }
 
   isLoadingMessages.value = false;
 }
 
-async function fetchHistory(conversationId: string) {
-  const conversation = conversations.value.find((c) => c.id === conversationId);
-  if (!conversation) return;
+async function fetchHistory(otherUserId: string) {
   try {
     const { data } = await useApiFetch<{ messages: Message[] }>(
-      `/api/messages?errandId=${conversation.errandId}&otherUserId=${conversation.otherUserId}`,
+      `/api/messages?otherUserId=${otherUserId}`,
     );
     if (data.value?.messages) {
       messages.value = data.value.messages;
@@ -187,8 +216,11 @@ const handleSendMessage = (messageText: string) => {
     !currentUserId.value
   )
     return;
+  console.log("Test");
   const conversation = activeConversation.value;
+  console.log(conversation);
   if (!conversation) return;
+  console.log("Sending");
 
   ws.value.send(
     JSON.stringify({
@@ -201,17 +233,18 @@ const handleSendMessage = (messageText: string) => {
 };
 
 const handleTyping = () => {
-  if (ws.value && activeConversationId.value) {
+  if (ws.value && activeConversation.value) {
     ws.value.send(
       JSON.stringify({
         type: "typing",
-        conversationId: activeConversationId.value,
+        conversationId: activeConversation.value.id,
+        recipientId: activeConversation.value.otherUserId,
       }),
     );
   }
 };
 
-// Utility
+// --- UTILITIES & LIFECYCLE ---
 const scrollToBottom = () => {
   nextTick(() => {
     if (messagesContainer.value) {
@@ -235,28 +268,43 @@ const getConversationId = (
   return `${errandId}:${sortedIds[0]}:${sortedIds[1]}`;
 };
 
-// Lifecycle & Watchers
 onMounted(async () => {
-  await fetchConversations();
   connectWebSocket();
-  const routeId = route.params.id as string | undefined;
-  if (routeId) {
-    // Ensure the conversation exists before selecting it
-    const conversationExists = conversations.value.some(
-      (c) => c.id === routeId,
+  await fetchConversations();
+
+  const { new: isNew, errandId, recipientId } = route.query;
+  const routeIdFromParam = route.params.id as string | undefined;
+
+  let targetConvId: string | null = null;
+
+  if (isNew && errandId && recipientId && currentUserId.value) {
+    targetConvId = getConversationId(
+      currentUserId.value,
+      recipientId as string,
+      errandId as string,
     );
-    if (conversationExists) {
-      await selectConversation(routeId);
-    } else if (conversations.value.length > 0) {
-      await selectConversation(conversations.value[0].id);
-    }
+  } else if (routeIdFromParam) {
+    targetConvId = routeIdFromParam;
   } else if (conversations.value.length > 0) {
-    await selectConversation(conversations.value[0].id);
+    targetConvId = conversations.value[0].id;
+  }
+
+  if (targetConvId) {
+    if (conversations.value.some((c) => c.id === targetConvId)) {
+      await selectConversation(targetConvId);
+    } else {
+      // If starting a new chat that's not in the list, refresh and select
+      await fetchConversations();
+      if (conversations.value.some((c) => c.id === targetConvId)) {
+        await selectConversation(targetConvId);
+      }
+    }
   }
 });
 
 onUnmounted(() => {
   ws.value?.close();
+  if (typingTimeout) clearTimeout(typingTimeout);
 });
 
 watch(currentUserId, (newVal) => {
@@ -264,16 +312,6 @@ watch(currentUserId, (newVal) => {
     ws.value.send(JSON.stringify({ type: "auth", userId: newVal }));
   }
 });
-
-watch(
-  () => route.params.id,
-  (newId) => {
-    const conversationId = Array.isArray(newId) ? newId[0] : newId;
-    if (conversationId && conversationId !== activeConversationId.value) {
-      selectConversation(conversationId);
-    }
-  },
-);
 </script>
 <template>
   <div class="h-full flex flex-col">
@@ -303,7 +341,7 @@ watch(
               :class="[
                 'w-full text-left p-3 rounded-lg transition-colors flex items-center gap-3',
                 activeConversationId === conv.id
-                  ? 'bg-primary/10 text-primary'
+                  ? 'bg-primary/10'
                   : 'hover:bg-slate-200/50 dark:hover:bg-slate-800/50',
               ]"
             >
@@ -326,7 +364,14 @@ watch(
               </div>
               <div class="flex-1 overflow-hidden">
                 <div class="flex justify-between items-baseline">
-                  <p class="font-semibold truncate">{{ conv.otherUserName }}</p>
+                  <p
+                    :class="[
+                      'font-semibold truncate',
+                      { 'text-primary': activeConversationId === conv.id },
+                    ]"
+                  >
+                    {{ conv.otherUserName }}
+                  </p>
                   <p class="text-xs text-muted-foreground flex-shrink-0">
                     {{
                       new Date(conv.timestamp).toLocaleTimeString([], {
@@ -371,9 +416,9 @@ watch(
         <template v-else>
           <!-- Chat Header -->
           <header
-            class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between"
+            class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0"
           >
-            <div v-if="activeConversation" class="flex items-center gap-3">
+            <div class="flex items-center gap-3">
               <Avatar>
                 <AvatarImage
                   :src="activeConversation.otherUserAvatar"
@@ -387,7 +432,10 @@ watch(
                 <h3 class="font-semibold">
                   {{ activeConversation.otherUserName }}
                 </h3>
-                <p class="text-sm text-muted-foreground truncate">
+                <p
+                  v-if="activeConversation.errandId !== SUPPORT_ERRAND_ID"
+                  class="text-sm text-muted-foreground truncate"
+                >
                   Re: {{ activeConversation.errandTitle }}
                 </p>
               </div>
@@ -422,30 +470,66 @@ watch(
                   : 'justify-start',
               ]"
             >
-              <div
-                :class="[
-                  'p-3 rounded-2xl max-w-lg',
-                  message.senderId === currentUserId
-                    ? 'bg-primary text-primary-foreground rounded-br-none'
-                    : 'bg-muted text-muted-foreground rounded-bl-none',
-                ]"
-              >
-                <p>{{ message.message }}</p>
-                <p class="text-xs opacity-70 mt-1 text-right">
-                  {{
-                    new Date(message.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  }}
-                </p>
+              <div class="flex items-end gap-2 max-w-lg">
+                <Avatar
+                  v-if="message.senderId !== currentUserId"
+                  class="w-8 h-8 self-end mb-2"
+                >
+                  <AvatarImage :src="message.sender.avatarUrl" />
+                  <AvatarFallback>{{
+                    getInitials(activeConversation.otherUserName)
+                  }}</AvatarFallback>
+                </Avatar>
+                <div
+                  :class="[
+                    'p-3 rounded-2xl',
+                    message.senderId === currentUserId
+                      ? 'bg-primary text-primary-foreground rounded-br-none'
+                      : 'bg-muted rounded-bl-none',
+                  ]"
+                >
+                  <p class="whitespace-pre-wrap">{{ message.message }}</p>
+                  <div
+                    class="flex items-center gap-2 mt-1"
+                    :class="[
+                      message.senderId === currentUserId
+                        ? 'justify-end'
+                        : 'justify-start',
+                    ]"
+                  >
+                    <p class="text-xs opacity-70">
+                      {{
+                        new Date(message.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      }}
+                    </p>
+                    <Icon
+                      v-if="
+                        message.senderId === currentUserId &&
+                        message.status === 'read'
+                      "
+                      name="mdi:check-all"
+                      class="h-4 w-4 text-blue-400"
+                    />
+                    <Icon
+                      v-if="
+                        message.senderId === currentUserId &&
+                        message.status === 'sent'
+                      "
+                      name="mdi:check"
+                      class="h-4 w-4"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Message Input -->
           <div
-            class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50"
+            class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex-shrink-0"
           >
             <MessagingMessageInput
               @send-message="handleSendMessage"

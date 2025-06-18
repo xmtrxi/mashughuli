@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
     const errands = await prisma.errand.findMany({
       where: {
         OR: [{ requesterId: userId }, { runnerId: userId }],
+
         // Only show conversations for active errands
         status: { in: ["open", "in_progress", "disputed"] },
       },
