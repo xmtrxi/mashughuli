@@ -27,7 +27,7 @@ COPY --from=builder /app/.output ./
 # Install only production dependencies (if needed for your setup)
 # You might not need this if your build output is self-contained
 COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install --omit=dev --frozen-lockfile
+RUN npm install -g pnpm && pnpm install  --frozen-lockfile
 
 # Set environment variables for production
 ENV NODE_ENV=production
