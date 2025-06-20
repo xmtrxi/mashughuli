@@ -41,7 +41,7 @@ COPY --from=build /app/package.json ./package.json
 # Copy the entrypoint script
 COPY docker/docker-entrypoint.sh .
 # Ensure it's executable inside the container
-RUN chmod +x ./docker/docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 
 EXPOSE 3000
 
