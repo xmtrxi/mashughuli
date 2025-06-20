@@ -1,0 +1,9 @@
+.git
+.github
+.env
+.output
+.nuxt
+node_modules
+dist
+.DS_Store
+*.local
