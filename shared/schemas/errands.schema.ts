@@ -1,5 +1,13 @@
-import { ErrandStatus, PriorityLevel } from "@prisma/client";
 import { z } from "zod";
+const PriorityLevel = z.enum(["low", "medium", "high", "urgent"]);
+const ErrandStatus = z.enum([
+  "draft",
+  "open",
+  "in_progress",
+  "completed",
+  "cancelled",
+  "disputed",
+]);
 export const createErrandSchema = z.object({
   categoryId: z.string().uuid(),
   title: z.string().min(1),
@@ -14,8 +22,8 @@ export const createErrandSchema = z.object({
   budgetMin: z.number().optional(),
   budgetMax: z.number().optional(),
   finalPrice: z.number().optional(),
-  priority: z.nativeEnum(PriorityLevel).default(PriorityLevel.medium),
-  status: z.nativeEnum(ErrandStatus).default(ErrandStatus.draft),
+  priority: PriorityLevel.default("medium"),
+  status: ErrandStatus.default("open"),
   visibility: z.boolean().optional(),
 });
 export const updateErrandSchema = z.object({
@@ -33,8 +41,8 @@ export const updateErrandSchema = z.object({
   budgetMin: z.number().optional(),
   budgetMax: z.number().optional(),
   finalPrice: z.number().optional(),
-  priority: z.nativeEnum(PriorityLevel).optional(),
-  status: z.nativeEnum(ErrandStatus).optional(),
+  priority: PriorityLevel.default("medium"),
+  status: ErrandStatus.default("open"),
   visibility: z.boolean().optional(),
 });
 
