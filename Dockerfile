@@ -46,7 +46,7 @@ RUN chmod +x ./docker-entrypoint.sh
 EXPOSE 3000
 
 # The ENTRYPOINT is the script that runs first
-ENTRYPOINT ["./docker/docker-entrypoint.sh"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
 
 # The CMD is the command that gets passed to the entrypoint script
 CMD ["node", ".output/server/index.mjs"]
