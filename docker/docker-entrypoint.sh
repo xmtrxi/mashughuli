@@ -9,7 +9,7 @@ set -e
 echo "Running Database Migrations..."
 # Run the Prisma migration deploy command. This is safe to run multiple times.
 # It applies pending migrations without generating new ones or prompting for input.
-pnpm prisma:migrate
+npx prisma migrate deploy
 
 echo "Starting Application..."
 # The 'exec "$@"' part is important. It replaces the script process with the
