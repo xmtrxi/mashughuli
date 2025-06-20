@@ -45,10 +45,10 @@ export default defineEventHandler(async (event) => {
     const amount = bid.price.toNumber();
     const platformFee = amount * 0.1; // 10% platform fee
     const totalAmount = amount + platformFee;
-    return await updateErrand(errandId, {
-      runnerId: bid.runnerId,
-      finalPrice: bid.price,
-    });
+    // return await updateErrand(errandId, {
+    //   runnerId: bid.runnerId,
+    //   finalPrice: bid.price,
+    // });
 
     // 2. Initiate M-Pesa STK Push
     const callBack = await processFormPayments({
