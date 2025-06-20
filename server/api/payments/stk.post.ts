@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
     const { updateErrand } = await errandService();
     const amount = bid.price.toNumber();
     const platformFee = amount * 0.1; // 10% platform fee
-    const totalAmount = amount + platformFee;
+    const totalAmount = Math.ceil(amount + platformFee);
     // return await updateErrand(errandId, {
     //   runnerId: bid.runnerId,
     //   finalPrice: bid.price,

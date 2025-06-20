@@ -20,15 +20,6 @@ const callStk = async (
   try {
     const phone = +`254${phoneNumber.slice(-9)}`;
 
-    console.log("Sending STK Push request with the following details:");
-
-    console.log("Amount:", amount);
-    console.log("Phone Number:", phone);
-    console.log("Description:", description);
-    console.log("Shortcode:", process.env.MPESA_BUSINESS_SHORTCODE);
-    console.log("Account Number:", accountNumber);
-    console.log("Callback URL:", process.env.MPESA_STK_CALLBACK_URL);
-    console.log("Lipa Na Mpesa PassKey:", process.env.MPESA_LNM_PASSKEY);
     // Build the request step by step with logging
     const stkBuilder = app
       .stkPush()
