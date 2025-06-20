@@ -11,14 +11,6 @@ COPY pnpm-lock.yaml ./
 COPY package.json ./
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
-# ---- Production Dependencies Stage ----
-# This stage needs prisma CLI to run migrations
-FROM base AS production-deps
-COPY pnpm-lock.yaml ./
-COPY package.json ./
-# Install ALL dependencies here, as prisma CLI is a devDependency
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-
 # ---- Build Stage ----
 FROM deps AS build
 COPY . .
@@ -33,7 +25,7 @@ ENV PORT=3000
 WORKDIR /app
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 # We need the full node_modules from production-deps to run migrations
-COPY --from=production-deps /app/node_modules ./node_modules
+COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/.output ./.output
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/package.json ./package.json
