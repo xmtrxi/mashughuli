@@ -31,7 +31,7 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 WORKDIR /app
-
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 # We need the full node_modules from production-deps to run migrations
 COPY --from=production-deps /app/node_modules ./node_modules
 COPY --from=build /app/.output ./.output

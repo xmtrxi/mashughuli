@@ -39,12 +39,12 @@ export default defineNuxtConfig({
     prefix: "",
   },
   routeRules: {
-    // "/": { prerender: true },
-    // "/about": { prerender: true },
-    // "/contact": { prerender: true },
-    // "/how-it-works": { prerender: true },
-    // "/auth/login": { prerender: true },
-    // "/auth/register": { prerender: true },
+    "/": { prerender: true },
+    "/about": { prerender: true },
+    "/contact": { prerender: true },
+    "/how-it-works": { prerender: true },
+    "/auth/login": { prerender: true },
+    "/auth/register": { prerender: true },
   },
   app: {
     pageTransition: {
@@ -102,6 +102,10 @@ export default defineNuxtConfig({
     storage: {
       cache: {
         driver: "redis",
+      },
+      redis: {
+        driver: "redis",
+        url: process.env.NUXT_REDIS_URL || "redis://localhost:6379",
       },
     },
   },
