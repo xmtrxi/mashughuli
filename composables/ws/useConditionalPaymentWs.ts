@@ -2,25 +2,29 @@ import { usePaymentWs } from "./usePaymentWs";
 
 export const useConditionalPaymentWs = () => {
   const wsManager = ref<ReturnType<typeof usePaymentWs> | null>(null);
-  const isActive = ref(false);
 
+  const isActive = computed(() => !!wsManager.value);
   const paymentStatus = computed(
     () => wsManager.value?.paymentStatus || "idle",
   );
   const paymentMessage = computed(() => wsManager.value?.paymentMessage || "");
   const paymentData = computed(() => wsManager.value?.paymentData || null);
   const isSubscribed = computed(() => wsManager.value?.isSubscribed || false);
+  const connectionStatus = computed(
+    () => wsManager.value?.connectionStatus || "CLOSED",
+  );
 
   const initializeConnection = (checkoutId: string, merchantId: string) => {
-    if (!isActive.value) {
+    if (!wsManager.value) {
       wsManager.value = usePaymentWs(checkoutId, merchantId);
-      isActive.value = true;
     }
   };
 
   const cleanup = () => {
-    wsManager.value = null;
-    isActive.value = false;
+    if (wsManager.value) {
+      wsManager.value.cleanup();
+      wsManager.value = null;
+    }
   };
 
   return {
@@ -28,6 +32,7 @@ export const useConditionalPaymentWs = () => {
     paymentMessage,
     paymentData,
     isSubscribed,
+    connectionStatus,
     isActive: readonly(isActive),
     initializeConnection,
     cleanup,

@@ -22,18 +22,11 @@ const { data: bidResponse, pending: bidPending } = await useApiFetch<
 >(`/api/bids/${bidId}`);
 const bid = computed(() => bidResponse.value?.data);
 
-// Form for payment
 const { handleSubmit, errors } = useForm({
   validationSchema: toTypedSchema(paymentSchema),
-  initialValues: {
-    errandId: errandId,
-    bidId: bidId,
-    phone: "",
-  },
+  initialValues: { errandId: errandId, bidId: bidId, phone: "" },
 });
 
-// State
-const currentPayment = ref<MpesaPaymentResponse | null>(null);
 const isPaymentInitiated = ref(false);
 const platformFee = computed(() =>
   bid.value ? parseFloat(bid.value.price.toString()) * 0.1 : 0,
@@ -61,9 +54,9 @@ const submitPayment = handleSubmit(async (values) => {
       },
     );
     if (data) {
-      currentPayment.value = data;
-      toast.success(data.message);
-      // Start listening for WebSocket updates
+      toast.info("STK Push Sent!", {
+        description: "Please check your phone to complete the payment.",
+      });
       initializeConnection(data.checkoutRequestId, data.merchantRequestId);
     }
   } catch (e: any) {
@@ -80,17 +73,29 @@ watch(paymentStatus, (status) => {
         "The runner has been notified and the errand is now in progress.",
       duration: 10000,
     });
-    // Redirect to the errand page after a delay
     setTimeout(() => {
       navigateTo(`/dashboard/errands/${errandId}`);
     }, 3000);
-  } else if (status === "failed") {
-    toast.error("Payment Failed", {
+  } else if (status === "failed" || status === "timeout") {
+    toast.error(`Payment ${status.charAt(0).toUpperCase() + status.slice(1)}`, {
       description:
-        paymentMessage.value || "The payment could not be completed.",
+        paymentMessage.value ||
+        "The payment could not be completed. Please try again.",
       duration: 10000,
     });
   }
+});
+
+const buttonText = computed(() => {
+  if (isPaymentInitiated.value) return "Sending prompt...";
+  if (isWsActive.value && paymentStatus.value === "pending")
+    return "Awaiting payment...";
+  if (
+    isWsActive.value &&
+    (paymentStatus.value === "failed" || paymentStatus.value === "timeout")
+  )
+    return "Try Again";
+  return "Accept & Pay";
 });
 
 onUnmounted(() => {
@@ -123,7 +128,6 @@ onUnmounted(() => {
     </div>
 
     <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Bid and Runner Details -->
       <div class="lg:col-span-2">
         <Card>
           <CardHeader>
@@ -157,14 +161,12 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
-
             <div class="space-y-2">
               <p class="text-sm font-medium">Bid Amount</p>
               <p class="text-2xl font-bold">
                 {{ formatCurrency(bid.price, "Kes") }}
               </p>
             </div>
-
             <div v-if="bid.experienceDetails">
               <p class="text-sm font-medium mb-1">Runner's Message</p>
               <p
@@ -177,7 +179,6 @@ onUnmounted(() => {
         </Card>
       </div>
 
-      <!-- Payment Summary & Form -->
       <div>
         <Card>
           <CardHeader>
@@ -228,7 +229,10 @@ onUnmounted(() => {
               <Button
                 type="submit"
                 class="w-full"
-                :disabled="isPaymentInitiated || isWsActive"
+                :disabled="
+                  isPaymentInitiated ||
+                  (isWsActive && paymentStatus === 'pending')
+                "
               >
                 <Icon
                   v-if="
@@ -238,19 +242,19 @@ onUnmounted(() => {
                   name="mdi:loading"
                   class="animate-spin mr-2"
                 />
-                <span v-if="isPaymentInitiated">Sending prompt...</span>
-                <span v-else-if="isWsActive && paymentStatus === 'pending'"
-                  >Awaiting payment...</span
-                >
-                <span v-else>Accept & Pay</span>
+                <span>{{ buttonText }}</span>
               </Button>
             </form>
+            <div
+              v-if="isWsActive"
+              class="w-full text-center p-2 bg-blue-50 border border-blue-200 rounded-lg"
+            >
+              <p class="text-sm text-blue-700 font-medium">
+                {{ paymentMessage }}
+              </p>
+            </div>
           </CardFooter>
         </Card>
-        <p class="text-xs text-muted-foreground text-center mt-4">
-          By clicking "Accept & Pay", you agree to our Terms of Service and
-          escrow policy.
-        </p>
       </div>
     </div>
   </div>
