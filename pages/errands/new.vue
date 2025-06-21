@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Form, useForm } from "vee-validate";
-import * as z from "zod";
 import { toast } from "vue-sonner";
 import { toTypedSchema } from "@vee-validate/zod";
 import type { Errand, ErrandCategory } from "@prisma/client";
 import type { ApiResponse } from "~/types";
 import { createErrandSchema } from "~/shared/schemas/errands.schema";
+definePageMeta({
+  middleware: ["auth"],
+});
 
 const { handleSubmit, isFieldDirty, setFieldValue, values } = useForm({
   validationSchema: toTypedSchema(createErrandSchema),

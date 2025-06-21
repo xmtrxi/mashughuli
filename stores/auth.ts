@@ -8,7 +8,7 @@ export const useAuthStore = defineStore(
     const user = ref<User | null>(null);
     const token = ref<string | null>(null);
     const loading = ref<boolean>(false);
-    const router = useRouter();
+    const route = useRoute();
 
     const login = async (values: any) => {
       loading.value = true;
@@ -23,7 +23,12 @@ export const useAuthStore = defineStore(
           token.value = authToken ? authToken : null;
           user.value = data;
           toast.success("Login Success");
-          router.push("/dashboard");
+
+          if (route.query.redirect) {
+            await navigateTo(`${route.query.redirect}`);
+          } else {
+            await navigateTo("/dashboard");
+          }
         }
       } catch (error: any) {
         // Show the most relevant error message to the user

@@ -42,7 +42,9 @@ const authStore = useAuthStore();
               >
                 <User class="h-4 w-4 text-blue-600" />
               </div>
-              <span class="hidden md:block">John Doe</span>
+              <span class="hidden md:block">{{
+                authStore.user?.fullName
+              }}</span>
               <ChevronDown class="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -63,7 +65,7 @@ const authStore = useAuthStore();
               <HomeIcon class="mr-2 h-4 w-4" />
               Admin Dashboard
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem :as="NuxtLink" to="/dashboard/settings">
               <Settings class="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>

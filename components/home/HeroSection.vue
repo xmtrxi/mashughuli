@@ -36,15 +36,20 @@
           <div
             class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start"
           >
-            <Button> Post Errand </Button>
-            <Button variant="secondary">
+            <NuxtLink :to="`/errands/new`" :class="buttonVariants()">
+              Post Errand
+            </NuxtLink>
+            <NuxtLink
+              :class="buttonVariants({ variant: 'secondary' })"
+              to="/auth/register?type=runner"
+            >
               <Icon
                 name="arcticons:runnerup"
                 color="black"
                 class="h-5 w-5 mr-2"
               />
               Become A Runner
-            </Button>
+            </NuxtLink>
           </div>
         </div>
 
@@ -151,5 +156,7 @@
 </template>
 
 <script setup>
+import { buttonVariants } from "../ui/button";
+
 // No additional setup needed for this component
 </script>
