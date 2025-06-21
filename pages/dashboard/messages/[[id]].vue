@@ -59,7 +59,8 @@ function connectWebSocket() {
   )
     return;
 
-  const wsUrl = `ws://${window.location.host}/api/websocket`;
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl = `${protocol}//${window.location.host}/api/websocket`;
   ws.value = new WebSocket(wsUrl);
 
   ws.value.onopen = () => {

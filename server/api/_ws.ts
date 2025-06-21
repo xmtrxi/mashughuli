@@ -3,7 +3,7 @@ import redisClient from "~/server/utils/redis";
 
 // Use a new Redis client instance specifically for subscribing.
 // This is a best practice to prevent a subscribing client from being blocked by other commands.
-const subscriber = redisClient.duplicate();
+const subscriber = redisClient?.duplicate();
 
 // This map tracks which topic (roomId) each active WebSocket peer is subscribed to.
 // Key: Peer object, Value: string (topic/roomId)
@@ -14,7 +14,7 @@ const peerSubscriptions = new Map<Peer, string>();
 const topicSubscriptions = new Map<string, Set<Peer>>();
 
 // Listen for messages from Redis channels
-subscriber.on("message", (channel, message) => {
+subscriber?.on("message", (channel, message) => {
   try {
     console.log(
       `[Redis SUB] Received message on channel '${channel}': ${message}`,
@@ -47,7 +47,7 @@ function subscribePeer(peer: Peer, topic: string) {
 
   // Only subscribe to the Redis channel if it's the first peer for this topic
   if (topicSubscriptions.get(topic)!.size === 1) {
-    subscriber.subscribe(topic, (err) => {
+    subscriber?.subscribe(topic, (err) => {
       if (err) {
         console.error(
           `[ws] Failed to subscribe to Redis channel ${topic}:`,
@@ -71,7 +71,7 @@ function unsubscribePeer(peer: Peer) {
       // If no peers are left on this topic, unsubscribe from Redis
       if (peers.size === 0) {
         topicSubscriptions.delete(topic);
-        subscriber.unsubscribe(topic);
+        subscriber?.unsubscribe(topic);
         console.log(`[ws] Unsubscribed from Redis channel: ${topic}`);
       }
     }

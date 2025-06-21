@@ -58,7 +58,9 @@ export const errandService = () => {
           category: true,
           bids: {
             include: {
-              runner: true,
+              runner: {
+                omit: { password: true },
+              },
             },
           },
         },
@@ -148,6 +150,23 @@ export const errandService = () => {
     }
   };
 
+  const getErrandPayments = async (event: H3Event, errandId: string) => {
+    try {
+      const user = await useAuthUser(event);
+      const transactions = await prisma.transaction.findMany({
+        where: {
+          errandId: errandId,
+        },
+      });
+      return transactions;
+    } catch (e: any) {
+      throw createError({
+        statusCode: e.statusCode || 500,
+        message: e.message || "Error when fetching payments",
+      });
+    }
+  };
+
   return {
     getErrands,
     createErrands,
@@ -155,5 +174,6 @@ export const errandService = () => {
     updateErrand,
     deleteErrand,
     createBid,
+    getErrandPayments,
   };
 };

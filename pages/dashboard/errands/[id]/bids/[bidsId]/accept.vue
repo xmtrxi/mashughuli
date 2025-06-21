@@ -4,8 +4,13 @@ import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import { buttonVariants } from "~/components/ui/button";
 import { useConditionalPaymentWs } from "~/composables/ws/useConditionalPaymentWs";
-import type { ApiResponse, BidsWithRelationships } from "~/types";
+import type {
+  ApiResponse,
+  BidsWithRelationships,
+  TransactionsWithRelationShips,
+} from "~/types";
 import { paymentSchema } from "~/shared/schemas/payment.schema";
+import { Loader2 } from "lucide-vue-next";
 
 interface MpesaPaymentResponse {
   merchantRequestId: string;
@@ -16,10 +21,28 @@ interface MpesaPaymentResponse {
 const route = useRoute();
 const bidId = route.params.bidsId as string;
 const errandId = route.params.id as string;
+const loading = ref({
+  payments: false,
+});
+const transactions = ref<TransactionsWithRelationShips[]>([]);
 
 const { data: bidResponse, pending: bidPending } = await useApiFetch<
   ApiResponse<BidsWithRelationships>
 >(`/api/bids/${bidId}`);
+const fetchPayments = async () => {
+  loading.value.payments = true;
+  try {
+    const { data } = await useApiFetch<
+      ApiResponse<TransactionsWithRelationShips[]>
+    >(`/api/errands/${errandId}/payments`);
+    if (data.value?.data) {
+      transactions.value = data.value.data;
+    }
+  } finally {
+    loading.value.payments = false;
+  }
+};
+fetchPayments();
 const bid = computed(() => bidResponse.value?.data);
 
 const { handleSubmit, errors } = useForm({
@@ -180,71 +203,181 @@ onUnmounted(() => {
       </div>
 
       <div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Summary</CardTitle>
-            <CardDescription
-              >Funds will be held in escrow and released to the runner upon
-              successful completion.</CardDescription
-            >
-          </CardHeader>
+        <Card v-if="loading.payments">
           <CardContent>
-            <div class="space-y-2 border-b pb-4">
-              <div class="flex justify-between">
-                <span>Bid amount</span>
-                <span>{{ formatCurrency(bid.price, "Kes") }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span>Platform Fee (10%)</span>
-                <span>{{ formatCurrency(platformFee, "Kes") }}</span>
-              </div>
-            </div>
-            <div class="flex justify-between font-bold text-lg pt-4">
-              <span>Total Due</span>
-              <span>{{ formatCurrency(totalAmount, "Kes") }}</span>
+            <div class="flex justify-center">
+              <Loader2 class="animate-spin" />
             </div>
           </CardContent>
-          <CardFooter class="flex flex-col gap-4">
-            <form @submit="submitPayment" class="w-full space-y-4">
-              <FormField v-slot="{ componentField }" name="phone">
-                <FormItem>
-                  <FormLabel>M-Pesa Phone Number</FormLabel>
-                  <div class="relative">
-                    <span
-                      class="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground text-sm"
-                      >+254</span
-                    >
-                    <FormControl>
-                      <Input
-                        type="text"
-                        placeholder="712345678"
-                        class="pl-12"
-                        v-bind="componentField"
-                      />
-                    </FormControl>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-              <Button
-                type="submit"
-                class="w-full"
-                :disabled="
-                  isPaymentInitiated ||
-                  (isWsActive && paymentStatus === 'pending')
-                "
+        </Card>
+        <Card v-else>
+          <CardHeader>
+            <CardTitle>Payment Summary</CardTitle>
+            <CardDescription>
+              <span v-if="transactions && transactions.length > 0">
+                Transaction history for this errand.
+              </span>
+              <span v-else>
+                Funds will be held in escrow and released to the runner upon
+                successful completion.
+              </span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <!-- Show existing transactions if they exist -->
+            <div
+              v-if="transactions && transactions.length > 0"
+              class="space-y-4"
+            >
+              <div
+                v-for="transaction in transactions"
+                :key="transaction.id"
+                class="border rounded-lg p-4 space-y-3"
               >
-                <Icon
-                  v-if="
+                <div class="flex justify-between items-center">
+                  <span class="font-medium"
+                    >Transaction #{{ transaction.id.slice(-8) }}</span
+                  >
+                  <span
+                    :class="{
+                      'bg-green-100 text-green-800':
+                        transaction.status === 'completed',
+                      'bg-yellow-100 text-yellow-800':
+                        transaction.status === 'pending',
+                      'bg-red-100 text-red-800':
+                        transaction.status === 'failed',
+                    }"
+                    class="px-2 py-1 rounded-full text-xs font-medium capitalize"
+                  >
+                    {{ transaction.status }}
+                  </span>
+                </div>
+
+                <div class="space-y-2 border-b pb-3">
+                  <div class="flex justify-between">
+                    <span>Amount</span>
+                    <span>{{ formatCurrency(transaction.amount, "Kes") }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Platform Fee</span>
+                    <span>{{
+                      formatCurrency(transaction.platformFee, "Kes")
+                    }}</span>
+                  </div>
+                  <div class="flex justify-between font-medium">
+                    <span>Total</span>
+                    <span>{{
+                      formatCurrency(
+                        Number(transaction.amount) +
+                          Number(transaction.platformFee),
+                        "Kes",
+                      )
+                    }}</span>
+                  </div>
+                </div>
+
+                <div class="space-y-1 text-sm text-muted-foreground">
+                  <div
+                    v-if="transaction.transactionReference"
+                    class="flex justify-between"
+                  >
+                    <span>Reference:</span>
+                    <span class="font-mono">{{
+                      transaction.transactionReference
+                    }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Date:</span>
+                    <span>{{
+                      new Date(transaction.createdAt).toLocaleDateString()
+                    }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Show payment form if no transactions exist -->
+            <div v-else>
+              <div class="space-y-2 border-b pb-4">
+                <div class="flex justify-between">
+                  <span>Bid amount</span>
+                  <span>{{ formatCurrency(bid.price, "Kes") }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>Platform Fee (10%)</span>
+                  <span>{{ formatCurrency(platformFee, "Kes") }}</span>
+                </div>
+              </div>
+              <div class="flex justify-between font-bold text-lg pt-4">
+                <span>Total Due</span>
+                <span>{{ formatCurrency(totalAmount, "Kes") }}</span>
+              </div>
+            </div>
+          </CardContent>
+
+          <CardFooter class="flex flex-col gap-4">
+            <!-- Show payment form only if no completed transactions -->
+            <div
+              v-if="
+                !transactions ||
+                transactions.length === 0 ||
+                !transactions.some((t) => t.status === 'completed')
+              "
+              class="w-full"
+            >
+              <form @submit="submitPayment" class="w-full space-y-4">
+                <FormField v-slot="{ componentField }" name="phone">
+                  <FormItem>
+                    <FormLabel>M-Pesa Phone Number</FormLabel>
+                    <div class="relative">
+                      <span
+                        class="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground text-sm"
+                      >
+                        +254
+                      </span>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          placeholder="712345678"
+                          class="pl-12"
+                          v-bind="componentField"
+                        />
+                      </FormControl>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
+                <Button
+                  type="submit"
+                  class="w-full"
+                  :disabled="
                     isPaymentInitiated ||
                     (isWsActive && paymentStatus === 'pending')
                   "
-                  name="mdi:loading"
-                  class="animate-spin mr-2"
-                />
-                <span>{{ buttonText }}</span>
-              </Button>
-            </form>
+                >
+                  <Icon
+                    v-if="
+                      isPaymentInitiated ||
+                      (isWsActive && paymentStatus === 'pending')
+                    "
+                    name="mdi:loading"
+                    class="animate-spin mr-2"
+                  />
+                  <span>{{ buttonText }}</span>
+                </Button>
+              </form>
+            </div>
+
+            <!-- Show message if payment is already completed -->
+            <div
+              v-else-if="transactions.some((t) => t.status === 'completed')"
+              class="w-full text-center p-4 bg-green-50 border border-green-200 rounded-lg"
+            >
+              <p class="text-sm text-green-700 font-medium">
+                Payment has been completed successfully.
+              </p>
+            </div>
+
             <div
               v-if="isWsActive"
               class="w-full text-center p-2 bg-blue-50 border border-blue-200 rounded-lg"

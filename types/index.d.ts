@@ -40,6 +40,11 @@ type BidsWithRelationships = Prisma.BidGetPayload<{
     errand: true;
   };
 }>;
+type TransactionsWithRelationShips = Prisma.TransactionGetPayload<{
+  include: {
+    payee: true;
+  };
+}>;
 export type StkCallback = {
   MerchantRequestID: string;
   CheckoutRequestID: string;

@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
     console.error(
       `[callback] No pending transaction found for ${CheckoutRequestID}. Publishing failure to Redis.`,
     );
-    await redisClient.publish(
+    await redisClient?.publish(
       topic,
       JSON.stringify({
         ...paymentData,
@@ -96,13 +96,13 @@ export default defineEventHandler(async (event) => {
       console.log(
         `[callback] Payment for ${CheckoutRequestID} processed successfully.`,
       );
-      await redisClient.publish(topic, JSON.stringify(paymentData));
+      await redisClient?.publish(topic, JSON.stringify(paymentData));
     } catch (e) {
       console.error(
         `[callback] DB transaction failed for ${CheckoutRequestID}:`,
         e,
       );
-      await redisClient.publish(
+      await redisClient?.publish(
         topic,
         JSON.stringify({
           ...paymentData,
@@ -120,7 +120,7 @@ export default defineEventHandler(async (event) => {
     console.log(
       `[callback] Payment failed for ${CheckoutRequestID}. Publishing to Redis.`,
     );
-    await redisClient.publish(topic, JSON.stringify(paymentData));
+    await redisClient?.publish(topic, JSON.stringify(paymentData));
   }
 
   return { success: true, message: "Callback processed." };
