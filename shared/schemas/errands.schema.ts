@@ -4,10 +4,27 @@ const ErrandStatus = z.enum([
   "draft",
   "open",
   "in_progress",
+  "pending_approval",
   "completed",
   "cancelled",
   "disputed",
 ]);
+
+// Schema for errand items
+const ErrandItemSchema = z.object({
+  name: z.string().min(1, "Item name is required"),
+  description: z.string().optional(),
+  quantity: z.number().min(1, "Quantity must be at least 1").default(1),
+  estimatedPrice: z.number().min(0).optional(),
+  category: z.string().optional(),
+  brand: z.string().optional(),
+  specifications: z.string().optional(),
+  urgent: z.boolean().default(false),
+  notes: z.string().optional(),
+});
+
+export { ErrandItemSchema };
+
 export const createErrandSchema = z.object({
   categoryId: z.string().uuid(),
   title: z.string().min(1),
@@ -25,6 +42,10 @@ export const createErrandSchema = z.object({
   priority: PriorityLevel.default("medium"),
   status: ErrandStatus.default("open"),
   visibility: z.boolean().optional(),
+  hasItemsList: z.boolean().default(false),
+  shopName: z.string().optional(),
+  estimatedCost: z.number().optional(),
+  items: z.array(ErrandItemSchema).optional(),
 });
 export const updateErrandSchema = z.object({
   runnerId: z.string().uuid().nullable().optional(),
