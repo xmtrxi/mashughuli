@@ -1,9 +1,11 @@
 <template>
-  <div class="flex flex-col min-h-screen">
-    <LayoutAppHeader />
-    <main class="">
-      <slot />
-    </main>
-    <LayoutAppFooter />
-  </div>
+  <NotificationsNotificationProvider>
+    <div class="flex flex-col min-h-screen transition-colors duration-200">
+      <LayoutAppHeader />
+      <main class="flex-1">
+        <slot />
+      </main>
+      <LayoutAppFooter />
+    </div>
+  </NotificationsNotificationProvider>
 </template>
