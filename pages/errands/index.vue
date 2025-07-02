@@ -171,15 +171,41 @@ function resetFilters() {
       </p>
 
       <!-- Errands grid -->
-      <div
-        v-if="filteredErrands.length > 0"
-        class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
-      >
-        <ErrandsErrandCard
-          v-for="errand in filteredErrands"
-          :key="errand.id"
-          :errand="errand"
-        />
+      <div v-if="filteredErrands.length > 0">
+        <!-- Use virtual scrolling for large lists -->
+        <VirtualScrollList
+          v-if="filteredErrands.length > 20"
+          :items="filteredErrands"
+          :item-height="280"
+          :container-height="600"
+          class="rounded-lg border"
+        >
+          <template #default="{ item: errand }">
+            <div class="p-3">
+              <ErrandsErrandCard :errand="errand" />
+            </div>
+          </template>
+          <template #empty>
+            <div class="text-center py-8">
+              <Icon name="mdi:briefcase-search-outline" class="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 class="text-lg font-semibold mb-2">No errands found</h3>
+              <p class="text-muted-foreground mb-4">Try adjusting your filters or search terms</p>
+              <Button @click="resetFilters">Clear filters</Button>
+            </div>
+          </template>
+        </VirtualScrollList>
+        
+        <!-- Regular grid for smaller lists -->
+        <div
+          v-else
+          class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        >
+          <ErrandsErrandCard
+            v-for="errand in filteredErrands"
+            :key="errand.id"
+            :errand="errand"
+          />
+        </div>
       </div>
       <div v-else class="py-8 text-center">
         <p class="text-muted-foreground">
