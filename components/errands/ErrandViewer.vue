@@ -193,6 +193,60 @@ async function handleFileDispute() {
                     {{ errand.description }}
                   </p>
                 </div>
+                
+                <!-- Items List Section -->
+                <div v-if="errand.errandItems && errand.errandItems.length > 0">
+                  <h3 class="text-lg font-medium mb-3">Items Needed</h3>
+                  <div class="space-y-3">
+                    <div 
+                      v-for="item in errand.errandItems" 
+                      :key="item.id" 
+                      class="border rounded-lg p-4 bg-muted/30"
+                    >
+                      <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                          <h4 class="font-medium flex items-center gap-2">
+                            {{ item.name }}
+                            <Badge v-if="item.urgent" variant="destructive" class="text-xs">Urgent</Badge>
+                            <Badge v-if="item.obtained" variant="default" class="text-xs">✓ Obtained</Badge>
+                          </h4>
+                          <p v-if="item.description" class="text-sm text-muted-foreground mt-1">{{ item.description }}</p>
+                          <div class="flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
+                            <span v-if="item.quantity > 1">Qty: {{ item.quantity }}</span>
+                            <span v-if="item.category" class="capitalize">{{ item.category }}</span>
+                            <span v-if="item.brand">{{ item.brand }}</span>
+                            <span v-if="item.estimatedPrice" class="font-medium text-foreground">
+                              Est: {{ formatCurrency(parseFloat(item.estimatedPrice.toString()), 'KES') }}
+                            </span>
+                            <span v-if="item.actualPrice" class="font-medium text-green-600">
+                              Actual: {{ formatCurrency(parseFloat(item.actualPrice.toString()), 'KES') }}
+                            </span>
+                          </div>
+                          <p v-if="item.specifications" class="text-xs text-muted-foreground mt-1">
+                            <strong>Specs:</strong> {{ item.specifications }}
+                          </p>
+                          <p v-if="item.notes" class="text-xs text-muted-foreground mt-1">
+                            <strong>Notes:</strong> {{ item.notes }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Total Cost Summary -->
+                  <div v-if="errand.totalCost || errand.estimatedCost" class="mt-4 p-3 bg-muted rounded-lg">
+                    <div class="flex justify-between items-center text-sm">
+                      <span v-if="errand.estimatedCost">Estimated Total Cost:</span>
+                      <span v-if="errand.totalCost">Actual Total Cost:</span>
+                      <span class="font-medium">
+                        {{ formatCurrency(parseFloat((errand.totalCost || errand.estimatedCost).toString()), 'KES') }}
+                      </span>
+                    </div>
+                    <p v-if="errand.shopName" class="text-xs text-muted-foreground mt-1">
+                      Shop: {{ errand.shopName }}
+                    </p>
+                  </div>
+                </div>
                 <div>
                   <h3 class="text-lg font-medium mb-2">About Requester</h3>
                   <div class="flex items-center gap-3">
