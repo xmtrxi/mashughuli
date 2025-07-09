@@ -4,13 +4,6 @@ import type { ErrandWithRelationships } from "~/types";
 
 const props = defineProps<{ errand: ErrandWithRelationships }>();
 
-const formatCurrency = (amount: number, currency: string): string => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency,
-  }).format(amount);
-};
-
 const formattedBudget = `${formatCurrency(parseFloat((props.errand.budgetMin ?? 0).toString()), "Kes")} - ${formatCurrency(
   parseFloat((props.errand.budgetMax ?? 0).toString()),
   "Kes",
@@ -73,13 +66,22 @@ const capitalize = (val: string) => val.charAt(0).toUpperCase() + val.slice(1);
           <Badge :class="priorityClass">
             {{ capitalize(errand.priority) }} Priority
           </Badge>
+          <Badge
+            v-if="errand.errandItems && errand.errandItems.length > 0"
+            variant="secondary"
+          >
+            <Icon name="mdi:format-list-bulleted" class="h-3 w-3 mr-1" />
+            {{ errand.errandItems.length }} items
+          </Badge>
         </div>
       </div>
     </CardContent>
 
     <CardFooter class="flex justify-between pt-3 border-t">
       <div class="flex items-center gap-2 text-sm">
-        <span class="text-muted-foreground">{{ errand.bids }} bids</span>
+        <span class="text-muted-foreground"
+          >{{ errand._count?.bids || errand.bids?.length || 0 }} bids</span
+        >
       </div>
       <NuxtLink
         :class="buttonVariants({ variant: 'default' })"

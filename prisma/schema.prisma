@@ -45,6 +45,7 @@ enum ErrandStatus {
   draft
   open
   in_progress
+  pending_approval
   completed
   cancelled
   disputed
@@ -219,6 +220,11 @@ model Errand {
   priority       PriorityLevel @default(medium)
   status         ErrandStatus  @default(draft)
   visibility     Boolean       @default(true)
+  acceptedBidId  String?       @map("accepted_bid_id") @db.Uuid
+  totalCost      Decimal?      @map("total_cost") @db.Decimal(10, 2)
+  estimatedCost  Decimal?      @map("estimated_cost") @db.Decimal(10, 2)
+  hasShoppingList Boolean      @default(false) @map("has_shopping_list")
+  shopName       String?       @map("shop_name")
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -235,6 +241,8 @@ model Errand {
   disputes           Dispute[]
   payouts            Payout[]
   pointsTransactions PointsTransaction[]
+  errandItems        ErrandItem[]
+  verificationFiles  VerificationFile[]
 
   @@index([status])
   @@index([categoryId])
@@ -534,4 +542,46 @@ model SystemSetting {
   updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@map("system_settings")
+}
+
+model ErrandItem {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  errandId    String   @map("errand_id") @db.Uuid
+  name        String
+  description String?
+  quantity    Int      @default(1)
+  estimatedPrice Decimal? @map("estimated_price") @db.Decimal(10, 2)
+  actualPrice    Decimal? @map("actual_price") @db.Decimal(10, 2)
+  category    String?  // e.g., "food", "electronics", "clothing"
+  brand       String?
+  specifications String? // JSON or text for additional specs
+  urgent      Boolean  @default(false)
+  obtained    Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  errand Errand @relation(fields: [errandId], references: [id], onDelete: Cascade)
+
+  @@index([errandId])
+  @@map("errand_items")
+}
+
+model VerificationFile {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  errandId    String   @map("errand_id") @db.Uuid
+  fileUrl     String   @map("file_url")
+  fileType    String   @map("file_type")
+  fileName    String   @map("file_name")
+  uploadedBy  String   @map("uploaded_by") @db.Uuid
+  description String?  // What this file proves/shows
+  isApproved  Boolean? @map("is_approved") // null = pending, true = approved, false = rejected
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  errand Errand @relation(fields: [errandId], references: [id], onDelete: Cascade)
+
+  @@index([errandId])
+  @@map("verification_files")
 }

@@ -2,6 +2,7 @@
 import { buttonVariants } from "../ui/button";
 
 const isMenuOpen = ref(false);
+const colorMode = useColorMode();
 
 const links = [
   {
@@ -31,21 +32,50 @@ const links = [
 ];
 
 const authStore = useAuthStore();
+
+// Toggle dark mode
+const toggleDarkMode = () => {
+  colorMode.preference = colorMode.value === "dark" ? "light" : "dark";
+};
+
+// Close mobile menu when clicking outside
+const handleOutsideClick = () => {
+  isMenuOpen.value = false;
+};
+
+// Handle mobile menu navigation
+const handleMobileNavigation = (href: string) => {
+  isMenuOpen.value = false;
+  navigateTo(href);
+};
+
+// Close menu on route change
+watch(
+  () => useRoute().path,
+  () => {
+    isMenuOpen.value = false;
+  },
+);
 </script>
 
 <template>
-  <header class="bg-white shadow-sm sticky top-0 z-50 left-0 right-0">
-    <div class="container mx-auto py-4">
+  <header
+    class="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm border-b sticky top-0 z-50 left-0 right-0"
+  >
+    <div class="container mx-auto py-3 px-4">
       <div class="flex justify-between items-center">
         <!-- Logo -->
-        <div class="flex items-center space-x-2">
+        <NuxtLink
+          to="/"
+          class="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+        >
           <div
             class="h-8 w-8 rounded-full bg-primary flex items-center justify-center"
           >
-            <span class="text-white font-bold">M</span>
+            <span class="text-primary-foreground font-bold">M</span>
           </div>
-          <span class="text-dark font-bold text-xl">Mashughuli Hub</span>
-        </div>
+          <span class="text-foreground font-bold text-xl">Mashughuli</span>
+        </NuxtLink>
 
         <!-- Desktop Navigation -->
         <nav class="hidden md:flex items-center space-x-8">
@@ -60,7 +90,34 @@ const authStore = useAuthStore();
         </nav>
 
         <!-- Actions -->
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2 md:space-x-4">
+          <!-- Dark Mode Toggle -->
+          <Button
+            variant="ghost"
+            size="sm"
+            @click="toggleDarkMode"
+            class="hidden sm:flex"
+            :title="
+              colorMode.value === 'dark'
+                ? 'Switch to light mode'
+                : 'Switch to dark mode'
+            "
+          >
+            <Icon
+              :name="
+                colorMode.value === 'dark'
+                  ? 'mdi:weather-sunny'
+                  : 'mdi:weather-night'
+              "
+              class="h-5 w-5"
+            />
+          </Button>
+
+          <!-- Notifications (only for logged in users) -->
+          <div v-if="authStore.user && authStore.token" class="hidden sm:block">
+            <!-- NotificationProvider will inject the notification bell here -->
+          </div>
+
           <NuxtLink
             v-if="!authStore.user && !authStore.token"
             to="/auth/login"
@@ -68,7 +125,7 @@ const authStore = useAuthStore();
               buttonVariants({
                 variant: 'outline',
                 class:
-                  'hidden md:block px-4 py-2 bg-white text-primary border border-primary rounded-lg hover:bg-primary hover:text-white transition',
+                  'hidden md:block px-4 py-2 bg-background text-foreground border border-border rounded-lg hover:bg-muted transition-colors',
               })
             "
           >
@@ -81,7 +138,7 @@ const authStore = useAuthStore();
               buttonVariants({
                 variant: 'default',
                 class:
-                  'hidden md:block px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition',
+                  'hidden md:block px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors',
               })
             "
           >
@@ -118,6 +175,7 @@ const authStore = useAuthStore();
             Dashboard
           </NuxtLink>
 
+          <LazyNotificationsNotificationProvider />
           <!-- Mobile menu button -->
           <button
             class="md:hidden p-2 text-gray-dark"
@@ -130,34 +188,93 @@ const authStore = useAuthStore();
       </div>
 
       <!-- Mobile Navigation Menu -->
-      <div
-        v-if="isMenuOpen"
-        class="fixed inset-0 top-[64px] md:hidden bg-white z-[999] overflow-auto shadow-lg"
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out"
+        enter-from-class="opacity-0 -translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-4"
       >
-        <nav class="flex flex-col space-y-4 pl-3">
-          <NuxtLink
-            v-for="link in links"
-            :key="link.href"
-            :to="link.href"
-            active-class="text-primary"
-            class="text-gray-dark hover:text-primary font-medium"
-            >{{ link.name }}</NuxtLink
-          >
+        <div
+          v-if="isMenuOpen"
+          class="absolute top-full left-0 right-0 md:hidden bg-background/95 backdrop-blur border-b shadow-lg z-[999]"
+        >
+          <nav class="container mx-auto px-4 py-6">
+            <div class="flex flex-col space-y-4">
+              <NuxtLink
+                v-for="link in links"
+                :key="link.href"
+                :to="link.href"
+                @click="handleMobileNavigation(link.href)"
+                active-class="text-primary font-semibold"
+                class="text-foreground hover:text-primary font-medium py-2 transition-colors"
+                >{{ link.name }}</NuxtLink
+              >
 
-          <div class="flex space-x-4 pt-2">
-            <button
-              class="px-4 py-2 text-primary border border-primary rounded-lg hover:bg-primary hover:text-white transition flex-1"
-            >
-              Sign In
-            </button>
-            <button
-              class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition flex-1"
-            >
-              Join Now
-            </button>
-          </div>
-        </nav>
-      </div>
+              <!-- Dark Mode Toggle (Mobile) -->
+              <Button
+                variant="ghost"
+                @click="toggleDarkMode"
+                class="justify-start p-2"
+              >
+                <Icon
+                  :name="
+                    colorMode.value === 'dark'
+                      ? 'mdi:weather-sunny'
+                      : 'mdi:weather-night'
+                  "
+                  class="h-5 w-5 mr-2"
+                />
+                {{ colorMode.value === "dark" ? "Light Mode" : "Dark Mode" }}
+              </Button>
+
+              <!-- Auth Buttons (Mobile) -->
+              <div
+                v-if="!authStore.user && !authStore.token"
+                class="flex flex-col space-y-3 pt-4 border-t"
+              >
+                <NuxtLink
+                  to="/auth/login"
+                  @click="isMenuOpen = false"
+                  class="w-full px-4 py-3 text-center text-primary border border-primary rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors"
+                >
+                  Sign In
+                </NuxtLink>
+                <NuxtLink
+                  to="/auth/register"
+                  @click="isMenuOpen = false"
+                  class="w-full px-4 py-3 text-center bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  Join Now
+                </NuxtLink>
+              </div>
+
+              <!-- Dashboard Links (Mobile) -->
+              <div
+                v-if="authStore.user && authStore.token"
+                class="flex flex-col space-y-3 pt-4 border-t"
+              >
+                <NuxtLink
+                  v-if="authStore.user.primaryRole === 'admin'"
+                  to="/admin"
+                  @click="isMenuOpen = false"
+                  class="w-full px-4 py-3 text-center bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  Admin Dashboard
+                </NuxtLink>
+                <NuxtLink
+                  to="/dashboard"
+                  @click="isMenuOpen = false"
+                  class="w-full px-4 py-3 text-center bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  Dashboard
+                </NuxtLink>
+              </div>
+            </div>
+          </nav>
+        </div>
+      </Transition>
     </div>
   </header>
 </template>

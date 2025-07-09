@@ -14,16 +14,58 @@ const { handleSubmit, isFieldDirty, setFieldValue, values } = useForm({
   initialValues: {
     priority: "medium",
     status: "open",
+    hasItemsList: false,
   },
 });
 
 const isSubmitting = ref(false);
+const items = ref([]);
+
+// Computed for estimated total cost
+const estimatedTotalCost = computed(() => {
+  return items.value.reduce((total, item) => {
+    return total + (item.estimatedPrice || 0) * (item.quantity || 1);
+  }, 0);
+});
+
+// Functions to manage items
+function addItem() {
+  items.value.push({
+    name: '',
+    description: '',
+    quantity: 1,
+    estimatedPrice: null,
+    category: '',
+    brand: '',
+    specifications: '',
+    urgent: false,
+    notes: '',
+  });
+}
+
+function removeItem(index) {
+  items.value.splice(index, 1);
+}
+
+// Watch for hasItemsList changes
+watch(() => values.hasItemsList, (newVal) => {
+  if (!newVal) {
+    items.value = [];
+  }
+});
 
 const onSubmit = handleSubmit(async (values) => {
   isSubmitting.value = true;
   try {
+    // Prepare the payload with items if they exist
+    const payload = {
+      ...values,
+      estimatedCost: estimatedTotalCost.value > 0 ? estimatedTotalCost.value : undefined,
+      items: values.hasItemsList ? items.value.filter(item => item.name.trim() !== '') : [],
+    };
+    
     const { data } = await useApiRequest<ApiResponse<Errand>>("/api/errands", {
-      body: values,
+      body: payload,
       method: "post",
     });
     if (data) {
@@ -222,6 +264,100 @@ function handleLocationUpdate(location: { lat: number; lng: number }) {
             <FormMessage />
           </FormItem>
         </FormField>
+
+        <!-- Items List Section -->
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-medium">Items Needed (Optional)</h3>
+            <FormField v-slot="{ componentField }" name="hasItemsList">
+              <FormItem class="flex items-center space-x-2">
+                <FormControl>
+                  <input type="checkbox" v-bind="componentField" class="rounded" />
+                </FormControl>
+                <FormLabel class="text-sm font-normal">This errand requires specific items</FormLabel>
+              </FormItem>
+            </FormField>
+          </div>
+          
+          <div v-if="values.hasItemsList" class="space-y-4 p-4 border rounded-lg bg-muted/30">
+            <FormField v-slot="{ componentField }" name="shopName">
+              <FormItem>
+                <FormLabel>Shop/Store Name (Optional)</FormLabel>
+                <FormControl>
+                  <Input v-bind="componentField" placeholder="e.g., Carrefour, Nakumatt, Local Store" />
+                </FormControl>
+                <FormDescription>Where should the items be purchased from?</FormDescription>
+              </FormItem>
+            </FormField>
+            
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <Label>Items List</Label>
+                <Button type="button" variant="outline" size="sm" @click="addItem">
+                  <Icon name="mdi:plus" class="h-4 w-4 mr-1" />
+                  Add Item
+                </Button>
+              </div>
+              
+              <div v-if="items.length === 0" class="text-center py-4 text-muted-foreground">
+                <p>No items added yet. Click "Add Item" to get started.</p>
+              </div>
+              
+              <div v-for="(item, index) in items" :key="index" class="border rounded-lg p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-medium">Item {{ index + 1 }}</h4>
+                  <Button type="button" variant="ghost" size="sm" @click="removeItem(index)">
+                    <Icon name="mdi:delete" class="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Item Name *</Label>
+                    <Input v-model="item.name" placeholder="e.g., Milk, Bread, etc." required />
+                  </div>
+                  <div>
+                    <Label>Quantity</Label>
+                    <Input v-model.number="item.quantity" type="number" min="1" placeholder="1" />
+                  </div>
+                  <div>
+                    <Label>Category</Label>
+                    <Input v-model="item.category" placeholder="e.g., Food, Electronics" />
+                  </div>
+                  <div>
+                    <Label>Brand (Optional)</Label>
+                    <Input v-model="item.brand" placeholder="e.g., Brookside, Samsung" />
+                  </div>
+                  <div>
+                    <Label>Estimated Price (KES)</Label>
+                    <Input v-model.number="item.estimatedPrice" type="number" min="0" step="0.01" placeholder="0.00" />
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <input v-model="item.urgent" type="checkbox" class="rounded" />
+                    <Label class="text-sm font-normal">Mark as urgent</Label>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label>Description/Specifications</Label>
+                  <Textarea v-model="item.description" placeholder="Size, color, specific requirements..." rows="2" />
+                </div>
+                
+                <div>
+                  <Label>Additional Notes</Label>
+                  <Textarea v-model="item.notes" placeholder="Any special instructions..." rows="2" />
+                </div>
+              </div>
+              
+              <div v-if="estimatedTotalCost > 0" class="mt-4 p-3 bg-muted rounded-lg">
+                <div class="flex justify-between items-center text-sm">
+                  <span class="font-medium">Estimated Total Cost:</span>
+                  <span class="font-bold">{{ formatCurrency(estimatedTotalCost, 'KES') }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <Button type="submit" :disabled="isSubmitting" class="w-full">
           <Icon

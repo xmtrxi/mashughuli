@@ -27,7 +27,7 @@ const authStore = useAuthStore();
       <div class="flex items-center gap-4">
         <!-- Notifications -->
         <Button variant="ghost" size="sm" class="relative">
-          <Bell class="h-5 w-5" />
+          <LazyNotificationsNotificationProvider />
           <span
             class="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"
           ></span>

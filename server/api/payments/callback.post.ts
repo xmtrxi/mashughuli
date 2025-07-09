@@ -54,6 +54,7 @@ export default defineEventHandler(async (event) => {
     )?.Value;
     try {
       await prisma.$transaction(async (tx) => {
+        // Update transaction status
         await tx.transaction.update({
           where: { id: pendingTransaction.id },
           data: {
@@ -61,28 +62,60 @@ export default defineEventHandler(async (event) => {
             transactionReference: String(mpesaReceiptNumber),
           },
         });
+
+        // Get the errand and accepted bid details for notifications
+        const errand = await tx.errand.findUnique({
+          where: { id: pendingTransaction.errandId },
+          include: {
+            requester: { omit: { password: true } },
+            bids: {
+              include: {
+                runner: { omit: { password: true } }
+              }
+            }
+          }
+        });
+
+        if (!errand) {
+          throw new Error('Errand not found');
+        }
+
+        // Find the accepted bid
+        const acceptedBid = errand.bids.find(bid => bid.runnerId === pendingTransaction.payeeId);
+        if (!acceptedBid) {
+          throw new Error('Accepted bid not found');
+        }
+
+        // Update errand status and assign runner
         await tx.errand.update({
           where: { id: pendingTransaction.errandId },
           data: {
             status: "in_progress",
             runnerId: pendingTransaction.payeeId,
             finalPrice: pendingTransaction.amount,
+            acceptedBidId: acceptedBid.id,
+            startTime: new Date()
           },
         });
-        await tx.bid.updateMany({
-          where: {
-            errandId: pendingTransaction.errandId,
-            runnerId: pendingTransaction.payeeId,
-          },
+
+        // Accept the winning bid and reject others
+        await tx.bid.update({
+          where: { id: acceptedBid.id },
           data: { status: "accepted" },
         });
-        await tx.bid.updateMany({
-          where: {
-            errandId: pendingTransaction.errandId,
-            NOT: { runnerId: pendingTransaction.payeeId },
-          },
-          data: { status: "rejected" },
-        });
+
+        const rejectedBids = errand.bids.filter(bid => bid.id !== acceptedBid.id);
+        if (rejectedBids.length > 0) {
+          await tx.bid.updateMany({
+            where: {
+              errandId: pendingTransaction.errandId,
+              NOT: { id: acceptedBid.id },
+            },
+            data: { status: "rejected" },
+          });
+        }
+
+        // Create payout record for escrow
         await tx.payout.create({
           data: {
             errandId: pendingTransaction.errandId,
@@ -91,6 +124,43 @@ export default defineEventHandler(async (event) => {
             amount: pendingTransaction.amount,
             status: "pending",
           },
+        });
+
+        // Create notifications
+        const notifications = [];
+
+        // Notify the accepted runner
+        notifications.push({
+          userId: pendingTransaction.payeeId,
+          type: "bid_accepted" as const,
+          title: "🎉 Congratulations! Your bid was accepted",
+          message: `Your bid for "${errand.title}" has been accepted and payment has been secured in escrow. You can now start working on this errand.`,
+          relatedId: pendingTransaction.errandId
+        });
+
+        // Notify the requester
+        notifications.push({
+          userId: pendingTransaction.payerId,
+          type: "payment" as const,
+          title: "Payment confirmed - Errand in progress",
+          message: `Payment for "${errand.title}" has been confirmed. Your runner ${acceptedBid.runner.fullName} has been notified and can now start working on your errand.`,
+          relatedId: pendingTransaction.errandId
+        });
+
+        // Notify rejected bidders
+        for (const rejectedBid of rejectedBids) {
+          notifications.push({
+            userId: rejectedBid.runnerId,
+            type: "errand_update" as const,
+            title: "Bid not selected",
+            message: `Unfortunately, your bid for "${errand.title}" was not selected. The requester chose another runner. Keep bidding on other errands!`,
+            relatedId: pendingTransaction.errandId
+          });
+        }
+
+        // Create all notifications
+        await tx.notification.createMany({
+          data: notifications
         });
       });
       console.log(

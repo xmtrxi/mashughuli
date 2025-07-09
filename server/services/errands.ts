@@ -19,6 +19,12 @@ export const errandService = () => {
           },
         },
         category: true,
+        errandItems: true,
+        _count: {
+          select: {
+            bids: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -30,16 +36,45 @@ export const errandService = () => {
     userId: string,
   ) => {
     try {
-      return await prisma.errand.create({
-        data: {
-          ...errand,
-          requesterId: userId,
-        },
+      const { items, ...errandData } = errand;
+      
+      return await prisma.$transaction(async (tx) => {
+        // Create the errand first
+        const createdErrand = await tx.errand.create({
+          data: {
+            ...errandData,
+            requesterId: userId,
+            hasShoppingList: Boolean(items && items.length > 0),
+          },
+        });
+        
+        // Create items if provided
+        if (items && items.length > 0) {
+          await tx.errandItem.createMany({
+            data: items.map(item => ({
+              ...item,
+              errandId: createdErrand.id,
+            })),
+          });
+        }
+        
+        // Return the errand with items
+        return await tx.errand.findUnique({
+          where: { id: createdErrand.id },
+          include: {
+            errandItems: true,
+            category: true,
+            requester: {
+              omit: { password: true },
+            },
+          },
+        });
       });
     } catch (e: any) {
+      console.error('Error creating errand:', e);
       throw createError({
         statusCode: 500,
-        message: "An error occurred!!",
+        message: "An error occurred creating the errand!",
       });
     }
   };
@@ -56,6 +91,7 @@ export const errandService = () => {
             },
           },
           category: true,
+          errandItems: true,
           bids: {
             include: {
               runner: {
