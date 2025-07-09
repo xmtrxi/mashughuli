@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Prisma } from "@prisma/client";
 import { buttonVariants } from "~/components/ui/button";
-import VirtualScrollList from "~/components/ui/VirtualScrollList.vue";
+import VirtualScrollList from "~/components/VirtualScrollList.vue";
 import type { ApiResponse, ErrandWithRelationships } from "~/types";
 
 const searchQuery = ref("");
