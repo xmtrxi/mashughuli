@@ -35,7 +35,7 @@ const authStore = useAuthStore();
 
 // Toggle dark mode
 const toggleDarkMode = () => {
-  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark';
+  colorMode.preference = colorMode.value === "dark" ? "light" : "dark";
 };
 
 // Close mobile menu when clicking outside
@@ -50,17 +50,25 @@ const handleMobileNavigation = (href: string) => {
 };
 
 // Close menu on route change
-watch(() => useRoute().path, () => {
-  isMenuOpen.value = false;
-});
+watch(
+  () => useRoute().path,
+  () => {
+    isMenuOpen.value = false;
+  },
+);
 </script>
 
 <template>
-  <header class="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm border-b sticky top-0 z-50 left-0 right-0">
+  <header
+    class="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm border-b sticky top-0 z-50 left-0 right-0"
+  >
     <div class="container mx-auto py-3 px-4">
       <div class="flex justify-between items-center">
         <!-- Logo -->
-        <NuxtLink to="/" class="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+        <NuxtLink
+          to="/"
+          class="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+        >
           <div
             class="h-8 w-8 rounded-full bg-primary flex items-center justify-center"
           >
@@ -89,19 +97,27 @@ watch(() => useRoute().path, () => {
             size="sm"
             @click="toggleDarkMode"
             class="hidden sm:flex"
-            :title="colorMode.value === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+            :title="
+              colorMode.value === 'dark'
+                ? 'Switch to light mode'
+                : 'Switch to dark mode'
+            "
           >
             <Icon
-              :name="colorMode.value === 'dark' ? 'mdi:weather-sunny' : 'mdi:weather-night'"
+              :name="
+                colorMode.value === 'dark'
+                  ? 'mdi:weather-sunny'
+                  : 'mdi:weather-night'
+              "
               class="h-5 w-5"
             />
           </Button>
-          
+
           <!-- Notifications (only for logged in users) -->
           <div v-if="authStore.user && authStore.token" class="hidden sm:block">
             <!-- NotificationProvider will inject the notification bell here -->
           </div>
-          
+
           <NuxtLink
             v-if="!authStore.user && !authStore.token"
             to="/auth/login"
@@ -159,6 +175,7 @@ watch(() => useRoute().path, () => {
             Dashboard
           </NuxtLink>
 
+          <LazyNotificationsNotificationProvider />
           <!-- Mobile menu button -->
           <button
             class="md:hidden p-2 text-gray-dark"
@@ -194,7 +211,7 @@ watch(() => useRoute().path, () => {
                 class="text-foreground hover:text-primary font-medium py-2 transition-colors"
                 >{{ link.name }}</NuxtLink
               >
-              
+
               <!-- Dark Mode Toggle (Mobile) -->
               <Button
                 variant="ghost"
@@ -202,14 +219,21 @@ watch(() => useRoute().path, () => {
                 class="justify-start p-2"
               >
                 <Icon
-                  :name="colorMode.value === 'dark' ? 'mdi:weather-sunny' : 'mdi:weather-night'"
+                  :name="
+                    colorMode.value === 'dark'
+                      ? 'mdi:weather-sunny'
+                      : 'mdi:weather-night'
+                  "
                   class="h-5 w-5 mr-2"
                 />
-                {{ colorMode.value === 'dark' ? 'Light Mode' : 'Dark Mode' }}
+                {{ colorMode.value === "dark" ? "Light Mode" : "Dark Mode" }}
               </Button>
 
               <!-- Auth Buttons (Mobile) -->
-              <div v-if="!authStore.user && !authStore.token" class="flex flex-col space-y-3 pt-4 border-t">
+              <div
+                v-if="!authStore.user && !authStore.token"
+                class="flex flex-col space-y-3 pt-4 border-t"
+              >
                 <NuxtLink
                   to="/auth/login"
                   @click="isMenuOpen = false"
@@ -225,9 +249,12 @@ watch(() => useRoute().path, () => {
                   Join Now
                 </NuxtLink>
               </div>
-              
+
               <!-- Dashboard Links (Mobile) -->
-              <div v-if="authStore.user && authStore.token" class="flex flex-col space-y-3 pt-4 border-t">
+              <div
+                v-if="authStore.user && authStore.token"
+                class="flex flex-col space-y-3 pt-4 border-t"
+              >
                 <NuxtLink
                   v-if="authStore.user.primaryRole === 'admin'"
                   to="/admin"

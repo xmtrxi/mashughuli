@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Prisma } from "@prisma/client";
 import { buttonVariants } from "~/components/ui/button";
+import VirtualScrollList from "~/components/ui/VirtualScrollList.vue";
 import type { ApiResponse, ErrandWithRelationships } from "~/types";
 
 const searchQuery = ref("");
@@ -171,7 +172,7 @@ function resetFilters() {
       </p>
 
       <!-- Errands grid -->
-      <div v-if="filteredErrands.length > 0">
+      <div v-if="filteredErrands && filteredErrands.length > 0">
         <!-- Use virtual scrolling for large lists -->
         <VirtualScrollList
           v-if="filteredErrands.length > 20"
@@ -187,14 +188,19 @@ function resetFilters() {
           </template>
           <template #empty>
             <div class="text-center py-8">
-              <Icon name="mdi:briefcase-search-outline" class="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <Icon
+                name="mdi:briefcase-search-outline"
+                class="h-16 w-16 mx-auto mb-4 text-muted-foreground"
+              />
               <h3 class="text-lg font-semibold mb-2">No errands found</h3>
-              <p class="text-muted-foreground mb-4">Try adjusting your filters or search terms</p>
+              <p class="text-muted-foreground mb-4">
+                Try adjusting your filters or search terms
+              </p>
               <Button @click="resetFilters">Clear filters</Button>
             </div>
           </template>
         </VirtualScrollList>
-        
+
         <!-- Regular grid for smaller lists -->
         <div
           v-else

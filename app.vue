@@ -16,6 +16,7 @@ const layout = computed(() => {
   <div>
     <div class="font-sans min-h-screen">
       <NuxtLoadingIndicator color="black" />
+      <NuxtPwaManifest />
       <NuxtRouteAnnouncer />
       <Toaster rich-colors />
       <NuxtLayout :name="layout">

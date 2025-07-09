@@ -3,7 +3,7 @@
 // Debounce function for search inputs
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
   return (...args: Parameters<T>) => {
@@ -15,7 +15,7 @@ export function debounce<T extends (...args: any[]) => any>(
 // Throttle function for scroll events
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
-  limit: number
+  limit: number,
 ): (...args: Parameters<T>) => void {
   let inThrottle: boolean;
   return (...args: Parameters<T>) => {
@@ -42,7 +42,7 @@ export function useLazyLoading(threshold = 0.1) {
           observer.disconnect();
         }
       },
-      { threshold }
+      { threshold },
     );
 
     if (target.value) {
@@ -59,51 +59,32 @@ export function useLazyLoading(threshold = 0.1) {
   return { isIntersecting, target };
 }
 
-// Format currency with caching
-const currencyFormatters = new Map<string, Intl.NumberFormat>();
-
-export function formatCurrency(amount: number, currency = 'KES'): string {
-  if (!currencyFormatters.has(currency)) {
-    currencyFormatters.set(
-      currency,
-      new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      })
-    );
-  }
-  
-  return currencyFormatters.get(currency)!.format(amount);
-}
-
 // Format relative time with caching
-const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
 export function formatRelativeTime(date: string | Date): string {
   const now = new Date();
   const target = new Date(date);
   const diffInSeconds = Math.floor((target.getTime() - now.getTime()) / 1000);
-  
+
   const units: [string, number][] = [
-    ['year', 31536000],
-    ['month', 2592000],
-    ['week', 604800],
-    ['day', 86400],
-    ['hour', 3600],
-    ['minute', 60],
-    ['second', 1]
+    ["year", 31536000],
+    ["month", 2592000],
+    ["week", 604800],
+    ["day", 86400],
+    ["hour", 3600],
+    ["minute", 60],
+    ["second", 1],
   ];
-  
+
   for (const [unit, secondsInUnit] of units) {
     if (Math.abs(diffInSeconds) >= secondsInUnit) {
       const value = Math.floor(diffInSeconds / secondsInUnit);
       return rtf.format(value, unit as Intl.RelativeTimeFormatUnit);
     }
   }
-  
-  return 'just now';
+
+  return "just now";
 }
 
 // Image optimization helper
@@ -111,16 +92,16 @@ export function getOptimizedImageUrl(
   src: string,
   width?: number,
   height?: number,
-  format?: 'webp' | 'jpg' | 'png'
+  format?: "webp" | "jpg" | "png",
 ): string {
-  if (!src) return '';
-  
+  if (!src) return "";
+
   // If using Nuxt Image, construct optimized URL
   const params = new URLSearchParams();
-  if (width) params.append('w', width.toString());
-  if (height) params.append('h', height.toString());
-  if (format) params.append('f', format);
-  
+  if (width) params.append("w", width.toString());
+  if (height) params.append("h", height.toString());
+  if (format) params.append("f", format);
+
   const query = params.toString();
   return query ? `${src}?${query}` : src;
 }
@@ -129,29 +110,29 @@ export function getOptimizedImageUrl(
 export function useVirtualScrolling<T>(
   items: Ref<T[]>,
   itemHeight: number,
-  containerHeight: number
+  containerHeight: number,
 ) {
   const scrollTop = ref(0);
   const startIndex = computed(() => Math.floor(scrollTop.value / itemHeight));
-  const endIndex = computed(() => 
+  const endIndex = computed(() =>
     Math.min(
       startIndex.value + Math.ceil(containerHeight / itemHeight) + 1,
-      items.value.length
-    )
+      items.value.length,
+    ),
   );
-  
-  const visibleItems = computed(() => 
-    items.value.slice(startIndex.value, endIndex.value)
+
+  const visibleItems = computed(() =>
+    items.value.slice(startIndex.value, endIndex.value),
   );
-  
+
   const totalHeight = computed(() => items.value.length * itemHeight);
   const offsetY = computed(() => startIndex.value * itemHeight);
-  
+
   return {
     visibleItems,
     totalHeight,
     offsetY,
-    scrollTop
+    scrollTop,
   };
 }
 
@@ -205,15 +186,15 @@ export const apiCache = new LRUCache<string, any>(50);
 export async function fetchWithCache<T>(
   url: string,
   options: any = {},
-  ttl = 5 * 60 * 1000 // 5 minutes
+  ttl = 5 * 60 * 1000, // 5 minutes
 ): Promise<T> {
   const cacheKey = `${url}:${JSON.stringify(options)}`;
   const cached = apiCache.get(cacheKey);
-  
+
   if (cached && Date.now() - cached.timestamp < ttl) {
     return cached.data;
   }
-  
+
   try {
     const data = await $fetch<T>(url, options);
     apiCache.set(cacheKey, { data, timestamp: Date.now() });
